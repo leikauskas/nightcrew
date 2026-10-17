@@ -19,10 +19,10 @@ https://github.com/user-attachments/assets/200be945-4714-42fb-981e-1815e68ddf0e
   nothing to configure.
 - **Only when needed.** With no agent working, closing the lid does what it
   always did.
-- **Leaves your settings alone.** It changes power settings only while an
-  agent works and puts them back afterwards, even after a crash.
-- **Agents get the machine.** While you're away, apps they don't need go into
-  Efficiency mode, the way Task Manager does it.
+- **Puts your settings back.** It changes the lid action and the sleep timer
+  only while an agent works, and saves your own values first.
+- **Optional: Efficiency mode.** Off by default. Turn it on and, while you're
+  away, apps the agents don't need run at low priority.
 - **Light.** One 1.7 MB exe in the tray, using well under 1% of a CPU core.
 
 ## Install
@@ -59,10 +59,11 @@ gh attestation verify .\nightcrew.exe -R leikauskas/nightcrew
    work started, Nightcrew saved your power settings, then set the lid to Do
    nothing and the sleep timer to Never. On battery the timer is your
    lid-closed limit plus an hour instead, or Never if the limit is off.
-3. **Other apps ease off.** Five minutes later, apps the agents don't need go
-   into Efficiency mode. Agents, what they're connected to, terminals,
-   editors, browsers with a Claude or Codex connector and games are left
-   alone. Everything's back to normal the moment you open the lid.
+3. **Other apps can ease off.** If you turned on Efficiency mode, apps the
+   agents don't need go into Efficiency mode five minutes later. Agents, what
+   they're connected to, terminals, editors, browsers with a Claude or Codex
+   connector and games are left alone. Everything's back to normal the moment
+   you open the lid.
 4. **The work ends.** Five minutes after the last sign of work, your settings
    go back.
 5. **It sleeps.** Once nobody has touched the laptop for 5 minutes, it follows
@@ -72,10 +73,30 @@ gh attestation verify .\nightcrew.exe -R leikauskas/nightcrew
 **Safety limits.** With the lid closed, Nightcrew stops early and hibernates at
 20% battery or after 8 untouched hours, even mid-task. You can change both.
 
-**Your settings always come back:** when the work ends, when you pause or quit,
-when you sign out, and on the next start after a crash. If Nightcrew is killed,
-a watchdog task restores them within 5 minutes. If your organization locks the
-power settings, Nightcrew stays idle and tells you so.
+## What it changes, and how it puts it back
+
+While an agent works, Nightcrew changes the active power plan only: the lid
+action becomes Do nothing, and the sleep timer becomes Never (on battery, your
+lid-closed limit plus an hour). Nothing else in Windows changes.
+
+Before the first change, it saves your own values twice: in
+`%LOCALAPPDATA%\Nightcrew\restore.json` and in the registry under
+`HKCU\Software\Nightcrew\Restore`. It puts them back when the work ends, when
+you pause or quit, when you sign out, and on the next start after a crash. If
+Nightcrew is killed, a watchdog task puts them back within 5 minutes. A value
+you changed yourself in the meantime stays yours.
+
+If both copies are lost, Nightcrew can't know your values, so it sets Windows'
+defaults for your plan. It knows its own values by the battery timer: Windows
+offers only whole minutes, and Nightcrew adds 7 seconds.
+
+Efficiency mode is off by default. If you turn it on, apps the agents don't
+need run at low priority with Windows' EcoQoS while you're away, and go back
+to normal when you return or the work ends. Nightcrew never suspends, freezes
+or kills an app.
+
+If your organization locks the power settings, Nightcrew stays idle and tells
+you so.
 
 ## The panel
 
@@ -138,7 +159,7 @@ read the log.
 | `GpuPercent` | 30 | GPU engine threshold, % |
 | `SampleSeconds` | 10 | Seconds between checks |
 | `Mark` | `lantern` | The tray mark: `lantern` or `moon` |
-| `EfficiencyWhileAway` | true | Put apps the agents don't need into Efficiency mode while you're away |
+| `EfficiencyWhileAway` | false | Put apps the agents don't need into Efficiency mode while you're away |
 | `LeaveAlone` | none | Process names never put into Efficiency mode (Settings > Keep at full speed) |
 | `LeaveAloneLabels` | none | The names Settings shows for `LeaveAlone` entries |
 | `ConnectorHostNames` | `chrome-native-host`, `extension-host` | Browser connector helpers; their browser is left alone |
@@ -159,8 +180,8 @@ in its folder. PowerShell doesn't wait for `.\nightcrew.exe --exit` on its own.
 
 Quit Nightcrew (right-click the lantern, then **Quit Nightcrew**), then run
 `.\nightcrew.exe --uninstall` in its folder. That puts your settings back,
-takes any app out of Efficiency mode, and removes the startup entry and the
-watchdog task. Then delete the exe, and `%LOCALAPPDATA%\Nightcrew` if you want
+takes any app out of Efficiency mode, and removes the startup entry, the
+watchdog task and its registry key. Then delete the exe, and `%LOCALAPPDATA%\Nightcrew` if you want
 the settings and log gone too. Don't only delete the exe: the watchdog task
 would stay behind.
 
