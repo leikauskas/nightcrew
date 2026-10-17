@@ -34,7 +34,11 @@ public sealed class RestoreRecord
 }
 
 /// <param name="armValues">What arming writes; <see cref="ArmValuesFor"/> of the lid-closed limit. Defaults to the 8-hour limit.</param>
-public sealed class RestoreJournal(IPowerPolicy policy, string path, ILog log, Func<PowerValues>? armValues = null)
+/// <param name="backup">
+/// A second copy of every saved record (the registry in the app). It's used only when the file is missing or corrupt,
+/// and only while the plan it names still holds Nightcrew's values; otherwise it's out of date and dropped.
+/// </param>
+public sealed class RestoreJournal(IPowerPolicy policy, string path, ILog log, Func<PowerValues>? armValues = null, IRestoreBackup? backup = null)
 {
     /// <summary>Lid action Sleep, sleep after 30 minutes on AC and 15 on DC: used when Windows' own defaults can't be read.</summary>
     public static readonly PowerValues FallbackDefaults = new(1, 1, 1800, 900);
@@ -55,7 +59,8 @@ public sealed class RestoreJournal(IPowerPolicy policy, string path, ILog log, F
 
     private PowerValues ArmValues => _armValues();
 
-    public bool HasRecord => File.Exists(path);
+    /// <summary>True when the file or the copy holds a record. Never throws.</summary>
+    public bool HasRecord => File.Exists(path) || LoadCopy() is not null;
 
     /// <summary>The user's values from the record; null when there is no readable record.</summary>
     public PowerValues? OwnerValues
@@ -99,10 +104,18 @@ public sealed class RestoreJournal(IPowerPolicy policy, string path, ILog log, F
         var active = policy.ActiveScheme();
         var arm = ArmValues;
         var record = Load(out var corrupt);
+        var fromCopy = false;
+        if (record is null && UsableCopy() is { } copy)
+        {
+            log.Warn("The restore record was lost; using the registry copy of your power settings");
+            record = copy.Record;
+            fromCopy = true;
+        }
         if (record is not null && RecordedScheme(record) is { } recorded && recorded != active)
         {
             if (PutBack(record, recorded) is { } restored) log.Info($"Restored power settings {restored} of the previous plan");
             File.Delete(path);
+            backup?.Clear();
             record = null;
         }
         if (record is null)
@@ -111,9 +124,10 @@ public sealed class RestoreJournal(IPowerPolicy policy, string path, ILog log, F
             Save(new RestoreRecord { Owner = owner, Written = arm, Scheme = active.ToString("D"), CreatedUtc = DateTime.UtcNow });
             log.Info($"Saved owner power settings {owner}");
         }
-        else if (record.Written != arm)
+        else if (fromCopy || record.Written != arm)
         {
             // The lid-closed limit changed: what we write now must be recorded as ours, or a restore would keep it.
+            // A record taken from the copy is written back to the file too.
             record.Written = arm;
             Save(record);
         }
@@ -149,21 +163,72 @@ public sealed class RestoreJournal(IPowerPolicy policy, string path, ILog log, F
         }
     }
 
-    private void Save(RestoreRecord record) => AtomicFile.WriteAllText(path, Json.Serialize(record));
+    /// <summary>Writes the file, then the copy; a copy that can't be saved is logged and doesn't stop the caller.</summary>
+    private void Save(RestoreRecord record)
+    {
+        AtomicFile.WriteAllText(path, Json.Serialize(record));
+        if (backup is null) return;
+        try
+        {
+            backup.Save(record);
+        }
+        catch (Exception ex)
+        {
+            log.Warn($"Couldn't save the registry copy of your power settings: {ex.Message}");
+        }
+    }
+
+    /// <summary>The copy's record, or null when there is no copy or it can't be read. Never throws.</summary>
+    private RestoreRecord? LoadCopy()
+    {
+        if (backup is null) return null;
+        try
+        {
+            return backup.Load();
+        }
+        catch (Exception)
+        {
+            return null; // read every tick through HasRecord: an unreadable copy counts as none
+        }
+    }
+
+    /// <summary>
+    /// The copy and its plan when the plan still holds Nightcrew's values (the marker, or exactly what the copy says we
+    /// wrote). Otherwise the user has their own settings back and the copy is out of date: it's dropped.
+    /// </summary>
+    private (RestoreRecord Record, Guid Scheme)? UsableCopy()
+    {
+        if (LoadCopy() is not { } copy) return null;
+        var scheme = RecordedScheme(copy) ?? policy.ActiveScheme();
+        if (policy.SchemeExists(scheme) && policy.Read(scheme) is var current && (IsOurs(current) || current == copy.Written))
+            return (copy, scheme);
+        backup!.Clear();
+        log.Info("Dropped an out-of-date registry copy of the power settings");
+        return null;
+    }
 
     /// <summary>
     /// Puts back each field we still own, to the plan the record names (the active plan for an old record), then deletes
-    /// the record. A record too damaged to read is set aside; if the active plan still holds values only Nightcrew writes,
-    /// Windows' defaults go back instead. False keeps the record for a retry.
+    /// the record and its copy. With the file missing or too damaged to read, a usable copy is put back instead; without
+    /// one, a damaged record is set aside, and if the active plan still holds values only Nightcrew writes, Windows'
+    /// defaults go back. False keeps the record for a retry.
     /// </summary>
     public bool Restore()
     {
         try
         {
             var record = Load(out var corrupt);
-            if (record is null) return !corrupt || PutDefaultsOverOurs();
+            if (record is null)
+            {
+                if (UsableCopy() is not { } copy) return !corrupt || PutDefaultsOverOurs();
+                var fromCopy = PutBack(copy.Record, copy.Scheme);
+                backup!.Clear();
+                log.Warn($"The restore record was lost; put back power settings {fromCopy} from the registry copy");
+                return true;
+            }
             var result = PutBack(record, RecordedScheme(record) ?? policy.ActiveScheme());
             File.Delete(path);
+            backup?.Clear();
             log.Info(result is { } values ? $"Restored power settings {values}" : "Restore record dropped: its power plan no longer exists");
             return true;
         }

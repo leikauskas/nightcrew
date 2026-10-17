@@ -82,8 +82,9 @@ internal static class Program
 
         try
         {
-            var restored = new RestoreJournal(new PowrProfPolicy(), AppPaths.RestoreFile, log).Restore();
+            var restored = new RestoreJournal(new PowrProfPolicy(), AppPaths.RestoreFile, log, backup: new RegistryRestoreBackup()).Restore();
             new EfficiencyMode(AppPaths.EfficiencyFile, log).RestoreAll("uninstall"); // the watchdog that would do it is going
+            if (restored) RegistryRestoreBackup.RemoveAll(); // a copy that couldn't be put back stays for the next try
             Autostart.Set(false, exePath);
             WatchdogTask.Unregister(log);
             log.Info("Uninstalled: start at login and the watchdog task removed");
@@ -115,7 +116,7 @@ internal static class Program
         // A record left by a crash or power cut: put the user's settings back first. This uses the real
         // policy even in a dry run, so a dry run never deletes a real record without restoring it.
         var realPolicy = new PowrProfPolicy();
-        var leftover = new RestoreJournal(realPolicy, AppPaths.RestoreFile, log);
+        var leftover = new RestoreJournal(realPolicy, AppPaths.RestoreFile, log, backup: new RegistryRestoreBackup());
         if (leftover.HasRecord) leftover.Restore();
         if (dryRun && leftover.HasRecord)
         {
@@ -141,7 +142,7 @@ internal static class Program
         IPowerPolicy policy = dryRun ? new DryRunPolicy(realPolicy, log) : realPolicy;
         ISystemPower power = dryRun ? new DryRunSystemPower(realPower, log) : realPower;
         IKeepAwake keepAwake = dryRun ? new DryRunKeepAwake(log) : realKeepAwake;
-        var journal = new RestoreJournal(policy, AppPaths.RestoreFile, log, () => RestoreJournal.ArmValuesFor(settings.LidClosedCapHours));
+        var journal = new RestoreJournal(policy, AppPaths.RestoreFile, log, () => RestoreJournal.ArmValuesFor(settings.LidClosedCapHours), new RegistryRestoreBackup());
 
         var grace = TimeSpan.FromMinutes(settings.GraceMinutes);
         var processes = new TickProcessTable(new ToolhelpProcessTable(), clock); // one list per tick, shared

@@ -16,7 +16,7 @@ public static class Watchdog
 
         try
         {
-            var journal = new RestoreJournal(new PowrProfPolicy(), AppPaths.RestoreFile, log);
+            var journal = new RestoreJournal(new PowrProfPolicy(), AppPaths.RestoreFile, log, backup: new RegistryRestoreBackup());
             if (journal.HasRecord)
             {
                 log.Info("Watchdog: Nightcrew is not running but left a restore record; restoring power settings");
