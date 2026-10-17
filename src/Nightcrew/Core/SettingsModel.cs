@@ -16,7 +16,7 @@ public sealed record SettingsPage(
     bool LockOnLidClose,
     bool StartAtLogin,
     IReadOnlyList<Choice<MarkKind>> Mark,
-    bool EfficiencyWhileAway = true,
+    bool EfficiencyWhileAway = false,
     IReadOnlyList<FullSpeedApp>? FullSpeed = null,
     IReadOnlyList<NamedApp>? Addable = null,
     bool StayAwakeForApprovals = true);

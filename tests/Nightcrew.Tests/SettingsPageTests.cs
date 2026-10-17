@@ -12,7 +12,7 @@ namespace Nightcrew.Tests;
 
 public sealed class SettingsPageTests
 {
-    private static readonly SettingsPage Defaults = SettingsModel.From(new Settings());
+    private static readonly SettingsPage Defaults = SettingsModel.From(new Settings { EfficiencyWhileAway = true });
 
     [Fact]
     public void The_page_shows_every_setting_in_order()
@@ -127,7 +127,7 @@ public sealed class SettingsPageTests
     [Fact]
     public void Add_an_app_opens_the_apps_nightcrew_would_slow_and_each_reports_back()
     {
-        var page = SettingsModel.From(new Settings(), [new NamedApp("Spotify", "spotify"), new NamedApp("Discord", "discord")]);
+        var page = SettingsModel.From(new Settings { EfficiencyWhileAway = true }, [new NamedApp("Spotify", "spotify"), new NamedApp("Discord", "discord")]);
         var (texts, calls) = Sta.Run(() =>
         {
             var calls = new List<string>();
@@ -144,7 +144,7 @@ public sealed class SettingsPageTests
     [Fact]
     public void With_nothing_to_add_the_list_says_so()
     {
-        var page = SettingsModel.From(new Settings(), []);
+        var page = SettingsModel.From(new Settings { EfficiencyWhileAway = true }, []);
 
         var texts = Sta.Run(() => Texts(PanelVisual.BuildSettings(page, null)));
 
@@ -188,6 +188,7 @@ public sealed class SettingsPageTests
 
     private static Settings Kept() => new()
     {
+        EfficiencyWhileAway = true,
         LeaveAlone = ["whatsapp.root", "olk"],
         LeaveAloneLabels = new() { ["olk"] = "Microsoft Outlook", ["whatsapp.root"] = "WhatsApp" },
     };

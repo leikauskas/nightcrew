@@ -95,7 +95,7 @@ public sealed class Settings
         GpuPercent = 30;
         SampleSeconds = 10;
         Mark = MarkKinds.LanternName;
-        EfficiencyWhileAway = true;
+        EfficiencyWhileAway = false;
         LeaveAlone = [];
         LeaveAloneLabels = [];
         ConnectorHostNames = ["chrome-native-host", "extension-host"];

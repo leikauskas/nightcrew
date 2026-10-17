@@ -12,7 +12,7 @@ public sealed class EngineTests : IDisposable
 
     private readonly string _dir = Path.Combine(Path.GetTempPath(), "nightcrew-tests-" + Guid.NewGuid().ToString("N"));
     private readonly List<string> _calls = [];
-    private readonly Settings _settings = new();
+    private readonly Settings _settings = new() { EfficiencyWhileAway = true };
     private readonly FakeClock _clock = new();
     private readonly FakeSignal _signal = new();
     private readonly FakeLog _log = new();

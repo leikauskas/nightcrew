@@ -44,7 +44,7 @@ public sealed class EfficiencyGateTests
     [Fact]
     public void Away_minutes_comes_from_the_settings()
     {
-        var settings = new Settings { AwayMinutes = 10 };
+        var settings = new Settings { AwayMinutes = 10, EfficiencyWhileAway = true };
         Assert.False(EfficiencyGate.Wanted(Mode.Armed, LidState.Closed, TimeSpan.FromMinutes(9), LidAction.Sleep, settings));
         Assert.True(EfficiencyGate.Wanted(Mode.Armed, LidState.Closed, TimeSpan.FromMinutes(10), LidAction.Sleep, settings));
     }

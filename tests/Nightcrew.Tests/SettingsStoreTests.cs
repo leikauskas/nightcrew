@@ -13,6 +13,25 @@ public sealed class SettingsStoreTests : IDisposable
         if (Directory.Exists(_dir)) Directory.Delete(_dir, recursive: true);
     }
 
+    private string FileWith(string json)
+    {
+        Directory.CreateDirectory(_dir);
+        var path = Path.Combine(_dir, "settings.json");
+        File.WriteAllText(path, json);
+        return path;
+    }
+
+    [Fact]
+    public void New_settings_have_efficiency_off() => Assert.False(new Settings().EfficiencyWhileAway);
+
+    [Fact]
+    public void A_stored_efficiency_on_is_kept() => // a v0.3.0 user
+        Assert.True(SettingsStore.Load(FileWith("{\"EfficiencyWhileAway\":true}")).EfficiencyWhileAway);
+
+    [Fact]
+    public void A_settings_file_without_the_field_has_efficiency_off() => // a v0.2.2 user
+        Assert.False(SettingsStore.Load(FileWith("{\"BatteryFloorPercent\":25}")).EfficiencyWhileAway);
+
     [Fact]
     public void Missing_file_creates_defaults()
     {

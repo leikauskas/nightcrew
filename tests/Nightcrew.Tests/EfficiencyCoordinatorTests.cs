@@ -10,7 +10,7 @@ public sealed class EfficiencyCoordinatorTests
 
     private readonly FakeEfficiency _efficiency = new();
     private readonly FakeSource _source = new();
-    private readonly Settings _settings = new();
+    private readonly Settings _settings = new() { EfficiencyWhileAway = true };
     private readonly List<int> _holders = [];
     private readonly ListLog _log = new();
     private readonly EfficiencyCoordinator _coordinator;

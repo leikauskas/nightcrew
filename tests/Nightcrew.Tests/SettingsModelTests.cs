@@ -13,11 +13,11 @@ public sealed class SettingsModelTests
     }
 
     [Fact]
-    public void Efficiency_mode_is_on_by_default_with_nothing_kept_at_full_speed()
+    public void Efficiency_mode_is_off_by_default_with_nothing_kept_at_full_speed()
     {
         var page = SettingsModel.From(new Settings());
 
-        Assert.True(page.EfficiencyWhileAway);
+        Assert.False(page.EfficiencyWhileAway);
         Assert.Empty(page.FullSpeed!);
         Assert.Null(page.Addable);
     }
