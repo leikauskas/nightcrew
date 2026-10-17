@@ -15,12 +15,12 @@ public sealed class GpuSignalTests
     }
 
     [Fact]
-    public void Name_is_gpu() => Assert.Equal("gpu", new GpuSignal(new FakeGpu(), 30).Name);
+    public void Name_is_gpu() => Assert.Equal("gpu", new GpuSignal(new FakeGpu(), 30, () => []).Name);
 
     [Fact]
     public void No_gpu_processes_is_not_busy()
     {
-        var signal = new GpuSignal(new FakeGpu(), 30);
+        var signal = new GpuSignal(new FakeGpu(), 30, () => []);
         Assert.False(signal.Sample(Now));
         Assert.Null(signal.LastBusyPid);
     }
@@ -29,7 +29,7 @@ public sealed class GpuSignalTests
     public void Below_threshold_is_not_busy()
     {
         var gpu = new FakeGpu { Values = new() { [10] = 29.9, [20] = 5 } };
-        var signal = new GpuSignal(gpu, 30);
+        var signal = new GpuSignal(gpu, 30, () => gpu.Values.Keys.ToList());
         Assert.False(signal.Sample(Now));
         Assert.Null(signal.LastBusyPid);
     }
@@ -38,7 +38,7 @@ public sealed class GpuSignalTests
     public void At_threshold_is_busy_and_records_the_pid()
     {
         var gpu = new FakeGpu { Values = new() { [10] = 2, [42] = 30 } };
-        var signal = new GpuSignal(gpu, 30);
+        var signal = new GpuSignal(gpu, 30, () => gpu.Values.Keys.ToList());
         Assert.True(signal.Sample(Now));
         Assert.Equal(42, signal.LastBusyPid);
     }
@@ -47,7 +47,7 @@ public sealed class GpuSignalTests
     public void Busiest_pid_is_recorded_when_several_are_busy()
     {
         var gpu = new FakeGpu { Values = new() { [10] = 50, [20] = 90, [30] = 35 } };
-        var signal = new GpuSignal(gpu, 30);
+        var signal = new GpuSignal(gpu, 30, () => gpu.Values.Keys.ToList());
         Assert.True(signal.Sample(Now));
         Assert.Equal(20, signal.LastBusyPid);
     }
@@ -56,11 +56,39 @@ public sealed class GpuSignalTests
     public void Last_busy_pid_is_kept_after_the_gpu_goes_quiet()
     {
         var gpu = new FakeGpu { Values = new() { [7] = 80 } };
-        var signal = new GpuSignal(gpu, 30);
+        var signal = new GpuSignal(gpu, 30, () => gpu.Values.Keys.ToList());
         Assert.True(signal.Sample(Now));
         gpu.Values = new() { [7] = 1 };
         Assert.False(signal.Sample(Now + TimeSpan.FromSeconds(10)));
         Assert.Equal(7, signal.LastBusyPid);
+    }
+
+    [Fact]
+    public void A_busy_gpu_outside_the_agent_tree_is_not_busy() // a game while an agent works
+    {
+        var gpu = new FakeGpu { Values = new() { [99] = 80 } };
+        var signal = new GpuSignal(gpu, 30, () => [42]);
+        Assert.False(signal.Sample(Now));
+        Assert.Empty(signal.Holders);
+    }
+
+    [Fact]
+    public void A_busy_gpu_in_the_agent_tree_is_busy()
+    {
+        var gpu = new FakeGpu { Values = new() { [42] = 35 } };
+        var signal = new GpuSignal(gpu, 30, () => [42]);
+        Assert.True(signal.Sample(Now));
+        Assert.Equal(42, signal.LastBusyPid);
+    }
+
+    [Fact]
+    public void Busy_pids_still_include_gpu_apps_outside_the_agent_tree() // so Efficiency mode leaves the game alone
+    {
+        var gpu = new FakeGpu { Values = new() { [42] = 35, [99] = 80 } };
+        var signal = new GpuSignal(gpu, 30, () => [42]);
+        Assert.True(signal.Sample(Now));
+        Assert.Equal([99, 42], signal.BusyPids);
+        Assert.Equal(42, signal.LastBusyPid);
     }
 
     [Theory]

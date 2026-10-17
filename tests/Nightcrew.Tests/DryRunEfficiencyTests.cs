@@ -66,7 +66,7 @@ public sealed class DryRunEfficiencyTests
     [Fact]
     public void The_gpu_signal_reports_the_pids_of_its_busy_processes_busiest_first()
     {
-        var signal = new GpuSignal(new FakeGpu(new() { [10] = 50, [11] = 5, [12] = 80 }), 30);
+        var signal = new GpuSignal(new FakeGpu(new() { [10] = 50, [11] = 5, [12] = 80 }), 30, () => [10, 11, 12]);
 
         Assert.True(signal.Sample(TimeSpan.Zero));
 

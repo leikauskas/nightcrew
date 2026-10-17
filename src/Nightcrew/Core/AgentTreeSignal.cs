@@ -26,6 +26,9 @@ public sealed class AgentTreeSignal(IProcessTable table, Settings settings) : IB
     /// <summary>Busy processes of the last busy sample: "Codex" · "working" for self-CPU agents, "python" · "busy" for tools.</summary>
     public IReadOnlyList<Holder> Holders { get; private set; } = [];
 
+    /// <summary>The agent processes of the last sample and every process they started, busy or not; the GPU signal counts only these.</summary>
+    public IReadOnlyCollection<int> TreePids { get; private set; } = [];
+
     public bool Sample(TimeSpan now)
     {
         var processes = table.List();
@@ -61,6 +64,7 @@ public sealed class AgentTreeSignal(IProcessTable table, Settings settings) : IB
                 if (isTool && !watched.ContainsKey(child.Pid)) watched[child.Pid] = (child, settings.ToolCpuPercent);
             }
         }
+        TreePids = visited;
 
         var busy = new List<ProcessEntry>();
         var next = new Dictionary<(int Pid, DateTime Start), (TimeSpan Cpu, TimeSpan At)>();

@@ -27,6 +27,16 @@ public sealed class AgentTreeSignalTests
     }
 
     [Fact]
+    public void TreePids_holds_agents_and_their_descendants()
+    {
+        ClaudeTree();
+        _table.Add(20, 1, "chrome");
+        var signal = Signal();
+        signal.Sample(_now);
+        Assert.Equal([10, 11, 12], signal.TreePids.OrderBy(pid => pid).ToList());
+    }
+
+    [Fact]
     public void First_sighting_only_records_a_baseline()
     {
         ClaudeTree();

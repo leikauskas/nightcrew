@@ -146,12 +146,13 @@ internal static class Program
 
         var grace = TimeSpan.FromMinutes(settings.GraceMinutes);
         var processes = new TickProcessTable(new ToolhelpProcessTable(), clock); // one list per tick, shared
-        var gpuSignal = new GpuSignal(gpu, settings.GpuPercent, ProcessNames.From(processes));
+        var agentTree = new AgentTreeSignal(processes, settings);
+        var gpuSignal = new GpuSignal(gpu, settings.GpuPercent, () => agentTree.TreePids, ProcessNames.From(processes));
         IBusySignal[] signals =
         [
             new TranscriptSignal(transcripts, settings.TranscriptRoots, settings.IgnorePathContains, grace),
             new ClaudeSessionSignal(new SessionFileReader(), processes, settings, () => events.Lid, log),
-            new AgentTreeSignal(processes, settings),
+            agentTree, // before the GPU signal, which counts only this tick's agent tree
             gpuSignal,
         ];
         var activity = new ActivityMonitor(signals, grace);

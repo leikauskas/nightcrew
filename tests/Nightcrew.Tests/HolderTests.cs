@@ -96,7 +96,7 @@ public sealed class HolderTests
     public void Gpu_reports_every_busy_process_busiest_first_with_names()
     {
         var gpu = new FakeGpu();
-        var signal = new GpuSignal(gpu, 30, pid => pid == 7 ? "brush_app" : null);
+        var signal = new GpuSignal(gpu, 30, () => [7, 8, 9], pid => pid == 7 ? "brush_app" : null);
         gpu.Percent[7] = 94.4;
         gpu.Percent[8] = 41.6;
         gpu.Percent[9] = 5;
