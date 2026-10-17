@@ -117,7 +117,7 @@ internal static class Program
         // policy even in a dry run, so a dry run never deletes a real record without restoring it.
         var realPolicy = new PowrProfPolicy();
         var leftover = new RestoreJournal(realPolicy, AppPaths.RestoreFile, log, backup: new RegistryRestoreBackup());
-        if (leftover.HasRecord) leftover.Restore();
+        leftover.Restore(); // a no-op unless a record, its copy or Nightcrew's own values are left
         if (dryRun && leftover.HasRecord)
         {
             // The dry-run journal only logs writes, so it must never touch a real record it could not restore.

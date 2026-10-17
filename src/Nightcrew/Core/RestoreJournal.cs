@@ -55,7 +55,10 @@ public sealed class RestoreJournal(IPowerPolicy policy, string path, ILog log, F
 
     /// <summary>What Nightcrew writes, for any limit: lid Do nothing, AC Never, DC a whole number of hours plus 7 seconds.</summary>
     private static bool IsOurs(PowerValues values) =>
-        values.LidAc == 0 && values.LidDc == 0 && values.StandbyAc == 0 && values.StandbyDc > 3600 && values.StandbyDc % 3600 == 7;
+        values.LidAc == 0 && values.LidDc == 0 && values.StandbyAc == 0 && HasMarker(values.StandbyDc);
+
+    /// <summary>A battery timer only Nightcrew writes: whole hours plus 7 seconds (Windows offers whole minutes).</summary>
+    private static bool HasMarker(uint dcTimer) => dcTimer > 3600 && dcTimer % 3600 == 7;
 
     private PowerValues ArmValues => _armValues();
 
@@ -193,14 +196,16 @@ public sealed class RestoreJournal(IPowerPolicy policy, string path, ILog log, F
     }
 
     /// <summary>
-    /// The copy and its plan when the plan still holds Nightcrew's values (the marker, or exactly what the copy says we
-    /// wrote). Otherwise the user has their own settings back and the copy is out of date: it's dropped.
+    /// The copy and its plan while the plan still shows Nightcrew's hand: the battery-timer marker, or exactly what the copy
+    /// says we wrote. Only the marker is needed, so a value the user changed since (say the plugged-in timer) doesn't throw
+    /// the copy away; PutBack keeps that value and puts the rest back. Otherwise the user has their own settings back and
+    /// the copy is out of date: it's dropped.
     /// </summary>
     private (RestoreRecord Record, Guid Scheme)? UsableCopy()
     {
         if (LoadCopy() is not { } copy) return null;
         var scheme = RecordedScheme(copy) ?? policy.ActiveScheme();
-        if (policy.SchemeExists(scheme) && policy.Read(scheme) is var current && (IsOurs(current) || current == copy.Written))
+        if (policy.SchemeExists(scheme) && policy.Read(scheme) is var current && (HasMarker(current.StandbyDc) || current == copy.Written))
             return (copy, scheme);
         backup!.Clear();
         log.Info("Dropped an out-of-date registry copy of the power settings");
@@ -211,7 +216,7 @@ public sealed class RestoreJournal(IPowerPolicy policy, string path, ILog log, F
     /// Puts back each field we still own, to the plan the record names (the active plan for an old record), then deletes
     /// the record and its copy. With the file missing or too damaged to read, a usable copy is put back instead; without
     /// one, a damaged record is set aside, and if the active plan still holds values only Nightcrew writes, Windows'
-    /// defaults go back. False keeps the record for a retry.
+    /// defaults go back. With nothing to put back it does nothing and returns true. False keeps the record for a retry.
     /// </summary>
     public bool Restore()
     {
@@ -220,7 +225,7 @@ public sealed class RestoreJournal(IPowerPolicy policy, string path, ILog log, F
             var record = Load(out var corrupt);
             if (record is null)
             {
-                if (UsableCopy() is not { } copy) return !corrupt || PutDefaultsOverOurs();
+                if (UsableCopy() is not { } copy) return PutDefaultsOverOurs() || !corrupt;
                 var fromCopy = PutBack(copy.Record, copy.Scheme);
                 backup!.Clear();
                 log.Warn($"The restore record was lost; put back power settings {fromCopy} from the registry copy");
@@ -239,14 +244,14 @@ public sealed class RestoreJournal(IPowerPolicy policy, string path, ILog log, F
         }
     }
 
-    /// <summary>The record was unreadable: if the active plan holds values only Nightcrew writes, put Windows' defaults back.</summary>
+    /// <summary>No record and no copy could be read: if the active plan holds values only Nightcrew writes, put Windows' defaults back.</summary>
     private bool PutDefaultsOverOurs()
     {
         var active = policy.ActiveScheme();
         if (!IsOurs(policy.Read(active))) return false;
         var defaults = WindowsDefaults(active);
         policy.Write(active, defaults);
-        log.Warn($"The restore record was unreadable and the power settings were Nightcrew's own; put back Windows' defaults {defaults}");
+        log.Warn($"No restore record could be read and the power settings were Nightcrew's own; put back Windows' defaults {defaults}");
         return true;
     }
 

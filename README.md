@@ -49,11 +49,12 @@ gh attestation verify .\nightcrew.exe -R leikauskas/nightcrew
 
 1. **An agent starts working.** Every 10 seconds Nightcrew looks for a Claude
    Code or Codex session that's growing, a build or script one of them
-   started, or heavy GPU use. For Claude Code it also reads the status in
-   `~\.claude\sessions\<pid>.json` (busy, idle or waiting), so a long, quiet
-   command still counts. That's the only file it opens in `~\.claude`:
-   session transcripts are watched for size only, and the login `.key` files
-   are never touched. Nightcrew has no network code. The lantern lights up.
+   started, or heavy GPU use by one of them or their tools. For Claude Code it
+   also reads the status in `~\.claude\sessions\<pid>.json` (busy, idle or
+   waiting), so a long, quiet command still counts. That's the only file it
+   opens in `~\.claude`: session transcripts are watched for size only, and the
+   login `.key` files are never touched. Nightcrew has no network code. The
+   lantern lights up.
 2. **You close the lid.** The laptop keeps running and locks itself, unless
    your lid action is Do nothing or **Lock when lid closes** is off. When the
    work started, Nightcrew saved your power settings, then set the lid to Do
@@ -77,7 +78,7 @@ gh attestation verify .\nightcrew.exe -R leikauskas/nightcrew
 
 While an agent works, Nightcrew changes the active power plan only: the lid
 action becomes Do nothing, and the sleep timer becomes Never (on battery, your
-lid-closed limit plus an hour). Nothing else in Windows changes.
+lid-closed limit plus an hour). No other power setting changes.
 
 Before the first change, it saves your own values twice: in
 `%LOCALAPPDATA%\Nightcrew\restore.json` and in the registry under
@@ -88,7 +89,9 @@ you changed yourself in the meantime stays yours.
 
 If both copies are lost, Nightcrew can't know your values, so it sets Windows'
 defaults for your plan. It knows its own values by the battery timer: Windows
-offers only whole minutes, and Nightcrew adds 7 seconds.
+offers only whole minutes, and Nightcrew adds 7 seconds. With the lid-closed
+limit off, that timer is Never and carries no mark, so only the two saved
+copies can bring your values back.
 
 Efficiency mode is off by default. If you turn it on, apps the agents don't
 need run at low priority with Windows' EcoQoS while you're away, and go back
@@ -122,13 +125,14 @@ what happens when the work is done.
 
 ## Good to know
 
-- A game or video that keeps the GPU busy counts as work.
+- Only GPU use by an agent, or by a tool it started, counts as work. A game
+  or a video export doesn't.
 
 <details>
 <summary><b>Other agents and advanced settings</b></summary>
 
-Nightcrew knows Claude Code and Codex. Any other agent is covered when it uses
-the GPU, or with **Hold awake**. To teach Nightcrew about another agent, quit
+Nightcrew knows Claude Code and Codex. Any other agent is covered with **Hold
+awake**, or once you add it here. To teach Nightcrew about another agent, quit
 Nightcrew, edit `%LOCALAPPDATA%\Nightcrew\settings.json`, and start it again:
 
 - add its process name to `AgentProcessNames`, so programs it starts count as
@@ -156,7 +160,7 @@ read the log.
 | `SelfCpuAgentNames` | `codex` | Agents whose own CPU use counts |
 | `SelfCpuPercent` | 2 | CPU threshold for those agents, % of one core |
 | `ToolCpuPercent` | 10 | CPU threshold for agent tools, % of one core |
-| `GpuPercent` | 30 | GPU engine threshold, % |
+| `GpuPercent` | 30 | GPU engine threshold, %, for agents and the tools they start |
 | `SampleSeconds` | 10 | Seconds between checks |
 | `Mark` | `lantern` | The tray mark: `lantern` or `moon` |
 | `EfficiencyWhileAway` | false | Put apps the agents don't need into Efficiency mode while you're away |
@@ -181,9 +185,10 @@ in its folder. PowerShell doesn't wait for `.\nightcrew.exe --exit` on its own.
 Quit Nightcrew (right-click the lantern, then **Quit Nightcrew**), then run
 `.\nightcrew.exe --uninstall` in its folder. That puts your settings back,
 takes any app out of Efficiency mode, and removes the startup entry, the
-watchdog task and its registry key. Then delete the exe, and `%LOCALAPPDATA%\Nightcrew` if you want
-the settings and log gone too. Don't only delete the exe: the watchdog task
-would stay behind.
+watchdog task, and, once your settings are back, Nightcrew's registry key
+(`HKCU\Software\Nightcrew`). Then delete the exe, and `%LOCALAPPDATA%\Nightcrew`
+if you want the settings and log gone too. Don't only delete the exe: the
+watchdog task would stay behind.
 
 ## Credits
 

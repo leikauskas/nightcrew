@@ -17,11 +17,8 @@ public static class Watchdog
         try
         {
             var journal = new RestoreJournal(new PowrProfPolicy(), AppPaths.RestoreFile, log, backup: new RegistryRestoreBackup());
-            if (journal.HasRecord)
-            {
-                log.Info("Watchdog: Nightcrew is not running but left a restore record; restoring power settings");
-                journal.Restore();
-            }
+            if (journal.HasRecord) log.Info("Watchdog: Nightcrew is not running but left a restore record; restoring power settings");
+            journal.Restore(); // with no record or copy it only puts Windows' defaults over values Nightcrew left
             new EfficiencyMode(AppPaths.EfficiencyFile, log).RestoreAll("watchdog");
             return 0;
         }

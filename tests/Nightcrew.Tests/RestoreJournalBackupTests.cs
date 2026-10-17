@@ -156,6 +156,43 @@ public sealed class RestoreJournalBackupTests : IDisposable
         Assert.Contains(_log.Warnings, warning => warning.Contains("registry"));
     }
 
+    [Fact]
+    public void A_copy_still_restores_after_the_user_changed_one_value() // final review I1
+    {
+        NewJournal().Arm();
+        File.Delete(RecordPath);
+        _policy.Values = RestoreJournal.ArmValuesFor(8) with { StandbyAc = 1800 }; // "sleep after 30 min when plugged in"
+
+        Assert.True(NewJournal().Restore());
+
+        Assert.Equal(new PowerValues(Owner.LidAc, Owner.LidDc, 1800, Owner.StandbyDc), _policy.Values);
+    }
+
+    [Fact]
+    public void Arming_after_a_lost_file_and_a_changed_value_keeps_the_user_values() // final review I1
+    {
+        NewJournal().Arm();
+        File.Delete(RecordPath);
+        _policy.Values = RestoreJournal.ArmValuesFor(8) with { StandbyAc = 1800 };
+
+        var journal = NewJournal();
+        journal.Arm();
+
+        Assert.Equal(Owner, journal.OwnerValues);
+    }
+
+    [Fact]
+    public void Lost_file_and_no_copy_puts_windows_defaults_over_our_values() // final review I2
+    {
+        NewJournal().Arm();
+        File.Delete(RecordPath);
+        _backup.Copy = null;
+
+        Assert.True(NewJournal().Restore());
+
+        Assert.Equal(_policy.Defaults, _policy.Values);
+    }
+
     private sealed class FakeBackup : IRestoreBackup
     {
         public RestoreRecord? Copy { get; set; }
