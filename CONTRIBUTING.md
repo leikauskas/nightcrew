@@ -4,6 +4,9 @@ Nightcrew is deliberately small. It keeps a laptop awake while agents work,
 puts the settings back and follows the lid action when they stop. Please keep
 changes to that job.
 
+Nightcrew is Windows only. Ports to other systems are welcome as separate
+projects.
+
 ## Build and test
 
 You need the .NET 10 SDK; `global.json` pins the version. In Git Bash, from
