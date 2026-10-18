@@ -4,8 +4,8 @@ Nightcrew is deliberately small. It keeps a laptop awake while agents work,
 puts the settings back and follows the lid action when they stop. Please keep
 changes to that job.
 
-Nightcrew is Windows only. Ports to other systems are welcome as separate
-projects.
+A Linux version is in progress (#13). For other systems, open an issue
+first.
 
 ## Build and test
 
