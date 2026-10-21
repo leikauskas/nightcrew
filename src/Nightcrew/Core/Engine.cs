@@ -54,6 +54,7 @@ public sealed class Engine(ActivityMonitor activity, Controller controller, Rest
             LogHoldersWhenTheyChange(activity.Holders);
             var source = power.Source;
             var battery = power.BatteryPercent;
+            FollowUserChange();
             var ownerLid = (journal.OwnerValues ?? policy.ReadActive()).LidFor(source);
             var policyAllows = CanWrite(now);
             var backingOff = _armBlockedUntil is { } until && now < until;
@@ -101,6 +102,23 @@ public sealed class Engine(ActivityMonitor activity, Controller controller, Rest
         catch (Exception ex)
         {
             log.Warn($"Moving to the new power plan failed, record kept: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// While armed, a lid action the user picks in Windows' settings would sleep the laptop when the lid closes, and the
+    /// panel would go on showing the old one: take it as theirs before this tick reads it, and set Do nothing again.
+    /// </summary>
+    private void FollowUserChange()
+    {
+        if (controller.Mode != Mode.Armed || !journal.UserChanged) return;
+        try
+        {
+            journal.TakeUserChanges();
+        }
+        catch (Exception ex)
+        {
+            log.Warn($"Taking in the changed power settings failed: {ex.Message}");
         }
     }
 

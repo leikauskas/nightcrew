@@ -85,7 +85,9 @@ Before the first change, it saves your own values twice: in
 `HKCU\Software\Nightcrew\Restore`. It puts them back when the work ends, when
 you pause or quit, when you sign out, and on the next start after a crash. If
 Nightcrew is killed, a watchdog task puts them back within 5 minutes. A value
-you changed yourself in the meantime stays yours.
+you change yourself in the meantime, such as the lid action, is saved as yours
+and comes back when the work ends. Until then Nightcrew sets its own value
+again, so closing the lid doesn't stop the work.
 
 If both copies are lost, Nightcrew can't know your values, so it sets Windows'
 defaults for your plan. It knows its own values by the battery timer: Windows

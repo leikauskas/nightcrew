@@ -49,6 +49,47 @@ public sealed class RestoreJournalTests : IDisposable
     }
 
     [Fact]
+    public void A_value_changed_while_armed_is_taken_as_the_users_and_ours_is_written_again()
+    {
+        var journal = NewJournal();
+        journal.Arm();
+        Assert.False(journal.UserChanged);
+        _policy.Values = _policy.Values with { LidDc = 2 };
+        Assert.True(journal.UserChanged);
+
+        journal.TakeUserChanges();
+
+        Assert.Equal(Owner with { LidDc = 2 }, journal.OwnerValues);
+        Assert.Equal(RestoreJournal.ArmValuesFor(8), _policy.Values);
+        Assert.False(journal.UserChanged);
+    }
+
+    [Fact]
+    public void No_change_counts_before_arming_or_after_a_restore()
+    {
+        var journal = NewJournal();
+        _policy.Values = new PowerValues(2, 2, 300, 300);
+        Assert.False(journal.UserChanged);
+        journal.Arm();
+        Assert.True(journal.Restore());
+
+        _policy.Values = new PowerValues(3, 3, 60, 60);
+
+        Assert.False(journal.UserChanged);
+    }
+
+    [Fact]
+    public void A_switch_to_another_plan_is_no_user_change()
+    {
+        var journal = NewJournal();
+        journal.Arm();
+
+        _policy.Activate(_policy.AddScheme(new PowerValues(2, 2, 300, 300)));
+
+        Assert.False(journal.UserChanged);
+    }
+
+    [Fact]
     public void Restore_puts_owner_values_back_and_deletes_the_record()
     {
         NewJournal().Arm();
