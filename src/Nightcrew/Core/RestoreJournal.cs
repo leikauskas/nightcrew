@@ -46,6 +46,14 @@ public sealed class RestoreJournal(IPowerPolicy policy, string path, ILog log, F
     private readonly Func<PowerValues> _armValues = armValues ?? (() => ArmValuesFor(8));
 
     /// <summary>
+    /// The plan as read back after Nightcrew's last write, until a restore. A class, so a quit that goes ahead without the
+    /// lock never reads half of it. A dry run reads back the user's values, which never change by themselves.
+    /// </summary>
+    private sealed record Held(Guid Scheme, PowerValues Values);
+
+    private volatile Held? _held;
+
+    /// <summary>
     /// Lid action Do nothing on AC and DC and sleep-after Never on AC. On DC sleep-after is the lid-closed limit plus an
     /// hour and 7 seconds, so a crash followed by a restart can't leave the logon screen awake for ever; with no limit it
     /// is Never. The odd 7 seconds make it ours: Windows only offers whole minutes, so no user has that value.
@@ -98,6 +106,39 @@ public sealed class RestoreJournal(IPowerPolicy policy, string path, ILog log, F
     }
 
     /// <summary>
+    /// True when the plan Nightcrew last wrote no longer holds it, because the user changed a value in Windows' settings,
+    /// such as the lid action. False before the first arm, after a restore, and while another plan is active. Never throws.
+    /// </summary>
+    public bool UserChanged
+    {
+        get
+        {
+            try
+            {
+                return _held is { } held && policy.ActiveScheme() == held.Scheme && policy.Read(held.Scheme) != held.Values;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Takes the values the user changed since Nightcrew wrote them into the record as theirs, so the panel shows them
+    /// and the restore puts them back, then writes Nightcrew's values again so the work goes on with the lid closed.
+    /// Throws if reading or writing the policy fails.
+    /// </summary>
+    public void TakeUserChanges()
+    {
+        if (_held is not { } held || Load(out _) is not { } record) return;
+        record.Owner = UsersValues(record, policy.Read(held.Scheme));
+        Save(record);
+        log.Info($"Power settings changed while armed; saved {record.Owner} as yours");
+        WriteAndHold(held.Scheme, record.Written);
+    }
+
+    /// <summary>
     /// Saves the user's values of the active plan once, then writes ArmValues to it. If the record belongs to another
     /// plan (the plan was switched while armed), that plan is put back first; if putting it back fails, this throws and
     /// the record stays as it is. Throws if reading or writing the policy fails.
@@ -134,7 +175,14 @@ public sealed class RestoreJournal(IPowerPolicy policy, string path, ILog log, F
             record.Written = arm;
             Save(record);
         }
-        policy.Write(active, arm);
+        WriteAndHold(active, arm);
+    }
+
+    /// <summary>Writes Nightcrew's values, then remembers what the plan holds, so a change by the user shows later.</summary>
+    private void WriteAndHold(Guid scheme, PowerValues values)
+    {
+        policy.Write(scheme, values);
+        _held = new Held(scheme, policy.Read(scheme));
     }
 
     /// <summary>
@@ -220,6 +268,7 @@ public sealed class RestoreJournal(IPowerPolicy policy, string path, ILog log, F
     /// </summary>
     public bool Restore()
     {
+        _held = null;
         try
         {
             var record = Load(out var corrupt);
@@ -267,15 +316,21 @@ public sealed class RestoreJournal(IPowerPolicy policy, string path, ILog log, F
             return null;
         }
         var current = policy.Read(scheme);
+        var result = UsersValues(record, current);
+        if (result != current) policy.Write(scheme, result);
+        return result;
+    }
+
+    /// <summary>The record's value for each field that still holds what we wrote, and the plan's for the rest.</summary>
+    private static PowerValues UsersValues(RestoreRecord record, PowerValues current)
+    {
         var owner = record.Owner;
         var written = record.Written;
-        var result = new PowerValues(
+        return new PowerValues(
             Pick(current.LidAc, written.LidAc, owner.LidAc),
             Pick(current.LidDc, written.LidDc, owner.LidDc),
             Pick(current.StandbyAc, written.StandbyAc, owner.StandbyAc),
             Pick(current.StandbyDc, written.StandbyDc, owner.StandbyDc));
-        if (result != current) policy.Write(scheme, result);
-        return result;
     }
 
     // A field the user changed since we armed is theirs; keep it.

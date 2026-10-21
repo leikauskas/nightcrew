@@ -94,6 +94,65 @@ public sealed class EngineTests : IDisposable
     }
 
     [Fact]
+    public void A_lid_action_changed_while_armed_shows_at_once_and_the_lid_is_held_again()
+    {
+        ArmWithLidOpen();
+        _policy.Values = _policy.Values with { LidAc = (uint)LidAction.Hibernate };
+
+        Tick();
+
+        Assert.Equal(LidAction.Hibernate, _engine.Snapshot.OwnerLid);
+        Assert.Equal(Owner with { LidAc = (uint)LidAction.Hibernate }, _journal.OwnerValues);
+        Assert.Equal(RestoreJournal.ArmValuesFor(8), _policy.Values);
+    }
+
+    [Fact]
+    public void A_lid_action_set_back_to_the_old_one_while_armed_is_held_again()
+    {
+        ArmWithLidOpen();
+        _policy.Values = _policy.Values with { LidAc = Owner.LidAc };
+
+        Tick();
+
+        Assert.Equal(Owner, _journal.OwnerValues);
+        Assert.Equal(RestoreJournal.ArmValuesFor(8), _policy.Values);
+    }
+
+    [Fact]
+    public void A_lid_action_changed_while_armed_is_what_goes_back_when_the_work_ends()
+    {
+        ArmWithLidOpen();
+        _policy.Values = _policy.Values with { LidAc = (uint)LidAction.Hibernate };
+        Tick();
+        _signal.Busy = false;
+
+        Tick(afterMinutes: 6);
+
+        Assert.Equal(Owner with { LidAc = (uint)LidAction.Hibernate }, _policy.Values);
+        Assert.False(_journal.HasRecord);
+    }
+
+    [Fact]
+    public void A_dry_run_writes_once_per_arm_though_the_plan_never_takes_its_values()
+    {
+        var policy = new DryRunPolicy(_policy, _log);
+        var journal = new RestoreJournal(policy, RecordPath, _log);
+        var engine = new Engine(new ActivityMonitor([_signal], Grace), new Controller(_settings), journal,
+            policy, new DryRunKeepAwake(_log), new DryRunSystemPower(_power, _log), _log, _clock);
+        _signal.Busy = true;
+        engine.Lid = LidState.Open;
+
+        engine.Tick();
+        _clock.Advance(TimeSpan.FromSeconds(10));
+        engine.Tick();
+        _clock.Advance(TimeSpan.FromSeconds(10));
+        engine.Tick();
+
+        Assert.Single(_log.Infos, line => line.Contains("would write power settings"));
+        Assert.Equal(Owner, journal.OwnerValues);
+    }
+
+    [Fact]
     public void Disarm_releases_then_restores_the_owner_values()
     {
         ArmWithLidOpen();
