@@ -26,7 +26,6 @@ public sealed class SettingsPageTests
             "Lid-closed limit", "2 h", "4 h", "8 h", "12 h", "Off",
             "Lock when lid closes", "Stay awake for approvals", "Start at login", "Efficiency mode while away",
             "Keep at full speed", "+ Add an app",
-            "Tray mark", "Lantern", "Moon and star",
             "Open log", "Quit Nightcrew",
         ], texts);
     }
@@ -61,7 +60,6 @@ public sealed class SettingsPageTests
                 LidClosedLimit: value => calls.Add($"limit {value}"),
                 LockOnLidClose: on => calls.Add($"lock {on}"),
                 StartAtLogin: on => calls.Add($"login {on}"),
-                Mark: kind => calls.Add($"mark {kind}"),
                 OpenLog: () => calls.Add("log"),
                 Quit: () => calls.Add("quit"),
                 StayAwakeForApprovals: on => calls.Add($"approvals {on}")));
@@ -69,7 +67,7 @@ public sealed class SettingsPageTests
             foreach (var name in new[]
             {
                 "Battery floor 30%", "Lid-closed limit Off", "Lock when lid closes", "Stay awake for approvals", "Start at login",
-                "Tray mark Moon and star", "Open log", "Quit Nightcrew", "Back",
+                "Open log", "Quit Nightcrew", "Back",
             })
             {
                 Click(Named<FrameworkElement>(root, name));
@@ -77,7 +75,7 @@ public sealed class SettingsPageTests
             return calls;
         });
 
-        Assert.Equal(["floor 30", "limit 0", "lock False", "approvals False", "login False", "mark MoonAndStar", "log", "quit", "back"], calls);
+        Assert.Equal(["floor 30", "limit 0", "lock False", "approvals False", "login False", "log", "quit", "back"], calls);
     }
 
     [Fact]
@@ -108,7 +106,7 @@ public sealed class SettingsPageTests
         var texts = Sta.Run(() => Texts(PanelVisual.BuildSettings(SettingsModel.From(Kept()), null)));
 
         var at = texts.IndexOf("Efficiency mode while away");
-        Assert.Equal(["Efficiency mode while away", "Keep at full speed", "Microsoft Outlook", "×", "WhatsApp", "×", "+ Add an app", "Tray mark"],
+        Assert.Equal(["Efficiency mode while away", "Keep at full speed", "Microsoft Outlook", "×", "WhatsApp", "×", "+ Add an app", "Open log"],
             texts.Skip(at).Take(8));
     }
 
@@ -137,7 +135,7 @@ public sealed class SettingsPageTests
         });
 
         var at = texts.IndexOf("+ Add an app");
-        Assert.Equal(["+ Add an app", "Discord", "Spotify", "Tray mark"], texts.Skip(at).Take(4));
+        Assert.Equal(["+ Add an app", "Discord", "Spotify", "Open log"], texts.Skip(at).Take(4));
         Assert.Equal(["add spotify"], calls);
     }
 
@@ -149,7 +147,7 @@ public sealed class SettingsPageTests
         var texts = Sta.Run(() => Texts(PanelVisual.BuildSettings(page, null)));
 
         var at = texts.IndexOf("+ Add an app");
-        Assert.Equal(["+ Add an app", "Nothing to add right now", "Tray mark"], texts.Skip(at).Take(3));
+        Assert.Equal(["+ Add an app", "Nothing to add right now", "Open log"], texts.Skip(at).Take(3));
     }
 
     [Fact]
@@ -166,7 +164,7 @@ public sealed class SettingsPageTests
         {
             var window = new PanelWindow(new PanelActions(() => { }, () => { }, () => { }), Actions());
             var view = AssetRenderer.SamplePanels[0].View;
-            window.Render(view, Defaults, MarkKind.Lantern);
+            window.Render(view, Defaults);
             var main = Texts((DependencyObject)window.Content);
             window.ShowPage(settings: true);
             var settings = (window.OnSettings, Texts((DependencyObject)window.Content));
@@ -184,7 +182,7 @@ public sealed class SettingsPageTests
     }
 
     private static SettingsActions Actions() =>
-        new(() => { }, _ => { }, _ => { }, _ => { }, _ => { }, _ => { }, () => { }, () => { });
+        new(() => { }, _ => { }, _ => { }, _ => { }, _ => { }, () => { }, () => { });
 
     private static Settings Kept() => new()
     {

@@ -21,10 +21,9 @@ $sources = Join-Path $assets "src"
 Add-Type -AssemblyName PresentationCore, PresentationFramework, WindowsBase
 $assembly = [Reflection.Assembly]::LoadFrom([string](Resolve-Path (Join-Path $root $Exe)))
 $renderer = $assembly.GetType("Nightcrew.App.Ui.AssetRenderer", $true)
-$lantern = [Enum]::Parse($assembly.GetType("Nightcrew.Core.MarkKind", $true), "Lantern")
 
 $renderer.GetMethod("WriteAppIcon").Invoke($null, @([string](Join-Path $root "src\Nightcrew\nightcrew.ico"))) | Out-Null
-$renderer.GetMethod("WritePanels").Invoke($null, @([string]$assets, $lantern)) | Out-Null
+$renderer.GetMethod("WritePanels").Invoke($null, @([string]$assets)) | Out-Null
 $renderer.GetMethod("WriteMarks").Invoke($null, @([string]$sources)) | Out-Null
 "Wrote nightcrew.ico, the panel images and the marks"
 

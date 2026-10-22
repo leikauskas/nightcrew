@@ -18,7 +18,7 @@ public sealed record PanelActions(Action Hold, Action Pause, Action Settings);
 /// <paramref name="ToggleAddList"/> opens or closes the Add an app list; <paramref name="RemoveFullSpeed"/> gets a process name.
 /// </summary>
 public sealed record SettingsActions(Action Back, Action<int> BatteryFloor, Action<int> LidClosedLimit,
-    Action<bool> LockOnLidClose, Action<bool> StartAtLogin, Action<MarkKind> Mark, Action OpenLog, Action Quit,
+    Action<bool> LockOnLidClose, Action<bool> StartAtLogin, Action OpenLog, Action Quit,
     Action<bool>? EfficiencyWhileAway = null, Action? ToggleAddList = null, Action<NamedApp>? AddFullSpeed = null,
     Action<string>? RemoveFullSpeed = null, Action<bool>? StayAwakeForApprovals = null);
 
@@ -33,10 +33,10 @@ public static class PanelVisual
     private const double Gutter = 20;
 
     /// <summary>The panel with its shadow room, ready to be a window's content or rendered to a bitmap.</summary>
-    public static FrameworkElement Build(PanelView view, MarkKind mark, PanelActions? actions)
+    public static FrameworkElement Build(PanelView view, PanelActions? actions)
     {
         var body = new StackPanel();
-        body.Children.Add(Header(mark, view.Mark, actions));
+        body.Children.Add(Header(view.Mark, actions));
         body.Children.Add(Headline(view));
         body.Children.Add(Text(view.SubLine, 12.5, Theme.MoonMuted, bottom: 16, lineHeight: 18));
         if (view.Holders.Count > 0) body.Children.Add(Holders(view.Holders));
@@ -64,9 +64,6 @@ public static class PanelVisual
         body.Children.Add(SwitchRow("Efficiency mode while away", page.EfficiencyWhileAway, actions?.EfficiencyWhileAway, bottom: 0));
         if (page.EfficiencyWhileAway) body.Children.Add(FullSpeed(page, actions));
         body.Children.Add(Hairline());
-        body.Children.Add(Text("Tray mark", 12.5, Theme.Moon));
-        body.Children.Add(Segments("Tray mark", page.Mark, actions?.Mark));
-        body.Children.Add(Hairline());
         body.Children.Add(Footer(actions));
         return Frame(body);
     }
@@ -89,7 +86,7 @@ public static class PanelVisual
         return new Border { Padding = new Thickness(ShadowRoom), Background = Brushes.Transparent, Child = panel };
     }
 
-    private static FrameworkElement Header(MarkKind kind, MarkState state, PanelActions? actions)
+    private static FrameworkElement Header(MarkState state, PanelActions? actions)
     {
         var header = new DockPanel { Margin = new Thickness(0, 0, 0, 14), LastChildFill = false };
         var settings = Text("Settings", 12, Theme.MoonFaint);
@@ -99,7 +96,7 @@ public static class PanelVisual
         header.Children.Add(settings);
 
         // The header is never smaller than 20 px on screen, so the mark takes the lighter stroke.
-        var image = new Image { Source = MarkGeometry.Image(kind, state, 1.5, Theme.Moon), Width = 20, Height = 20, VerticalAlignment = VerticalAlignment.Center };
+        var image = new Image { Source = MarkGeometry.Image(state, 1.5, Theme.Moon), Width = 20, Height = 20, VerticalAlignment = VerticalAlignment.Center };
         header.Children.Add(image);
         var name = Text("Nightcrew", 13, Theme.Moon, FontWeights.Medium);
         name.Margin = new Thickness(8, 0, 0, 0);

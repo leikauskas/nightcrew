@@ -58,9 +58,6 @@ public sealed class SettingsModelTests
         Assert.Equal(["2 h", "4 h", "8 h", "12 h", "Off"], page.LidClosedLimit.Select(choice => choice.Label));
         Assert.Equal("8 h", page.LidClosedLimit.Single(choice => choice.Selected).Label);
 
-        Assert.Equal(["Lantern", "Moon and star"], page.Mark.Select(choice => choice.Label));
-        Assert.Equal(MarkKind.Lantern, page.Mark.Single(choice => choice.Selected).Value);
-
         Assert.True(page.LockOnLidClose);
         Assert.True(page.StartAtLogin);
     }
@@ -70,12 +67,11 @@ public sealed class SettingsModelTests
     {
         var page = SettingsModel.From(new Settings
         {
-            BatteryFloorPercent = 0, LidClosedCapHours = 12, LockOnLidClose = false, StartAtLogin = false, Mark = "moon",
+            BatteryFloorPercent = 0, LidClosedCapHours = 12, LockOnLidClose = false, StartAtLogin = false,
         });
 
         Assert.Equal("Off", page.BatteryFloor.Single(choice => choice.Selected).Label);
         Assert.Equal("12 h", page.LidClosedLimit.Single(choice => choice.Selected).Label);
-        Assert.Equal(MarkKind.MoonAndStar, page.Mark.Single(choice => choice.Selected).Value);
         Assert.False(page.LockOnLidClose);
         Assert.False(page.StartAtLogin);
     }

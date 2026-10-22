@@ -114,8 +114,8 @@ what happens when the work is done.
   Nightcrew can't detect on its own.
 - **Pause** hands the lid back to Windows until you resume.
 - **Settings**, or right-click the lantern: battery floor, lid-closed limit,
-  lock on lid close, stay awake for approvals, start at login, Efficiency mode
-  while away, and the tray mark.
+  lock on lid close, stay awake for approvals, start at login and Efficiency
+  mode while away.
 - **Stay awake for approvals**: with the lid closed, Claude Code waiting for
   your approval or answer counts as work, so you can answer from your phone.
   Claude Code only. With the lid open, Windows' own sleep timer applies.
@@ -164,7 +164,6 @@ read the log.
 | `ToolCpuPercent` | 10 | CPU threshold for agent tools, % of one core |
 | `GpuPercent` | 30 | GPU engine threshold, %, for agents and the tools they start |
 | `SampleSeconds` | 10 | Seconds between checks |
-| `Mark` | `lantern` | The tray mark: `lantern` or `moon` |
 | `EfficiencyWhileAway` | false | Put apps the agents don't need into Efficiency mode while you're away |
 | `LeaveAlone` | none | Process names never put into Efficiency mode (Settings > Keep at full speed) |
 | `LeaveAloneLabels` | none | The names Settings shows for `LeaveAlone` entries |

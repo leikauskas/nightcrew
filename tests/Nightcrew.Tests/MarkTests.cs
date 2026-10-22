@@ -9,31 +9,6 @@ namespace Nightcrew.Tests;
 public sealed class MarkTests
 {
     [Theory]
-    [InlineData("lantern", MarkKind.Lantern)]
-    [InlineData("moon", MarkKind.MoonAndStar)]
-    [InlineData(" Moon ", MarkKind.MoonAndStar)]
-    [InlineData("lanturn", MarkKind.Lantern)]
-    [InlineData("", MarkKind.Lantern)]
-    [InlineData(null, MarkKind.Lantern)]
-    public void Mark_names_parse_and_anything_unknown_is_the_lantern(string? name, MarkKind expected)
-    {
-        Assert.Equal(expected, MarkKinds.Parse(name));
-    }
-
-    [Fact]
-    public void Mark_names_round_trip()
-    {
-        Assert.Equal(MarkKind.MoonAndStar, MarkKinds.Parse(MarkKinds.Name(MarkKind.MoonAndStar)));
-        Assert.Equal(MarkKind.Lantern, MarkKinds.Parse(MarkKinds.Name(MarkKind.Lantern)));
-    }
-
-    [Fact]
-    public void Settings_default_to_the_lantern()
-    {
-        Assert.Equal("lantern", new Settings().Mark);
-    }
-
-    [Theory]
     [InlineData(16, 2.0)]
     [InlineData(20, 2.0)]
     [InlineData(24, 1.5)]
@@ -43,21 +18,19 @@ public sealed class MarkTests
         Assert.Equal(expected, MarkGeometry.StrokeFor(pixels));
     }
 
-    [Theory]
-    [InlineData(MarkKind.Lantern)]
-    [InlineData(MarkKind.MoonAndStar)]
-    public void Each_mark_draws_its_two_states_differently_and_inside_the_grid(MarkKind kind)
+    [Fact]
+    public void The_lantern_draws_its_two_states_differently_and_inside_the_grid()
     {
         Sta.Run(() =>
         {
             var states = new[] { MarkState.Idle, MarkState.Live };
-            var pixels = states.Select(state => MarkGeometry.ToBgra(MarkGeometry.Render(kind, state, 32, Theme.Moon))).ToList();
+            var pixels = states.Select(state => MarkGeometry.ToBgra(MarkGeometry.Render(state, 32, Theme.Moon))).ToList();
             Assert.NotEqual(pixels[0], pixels[1]);
 
             foreach (var state in states)
             {
-                var bounds = MarkGeometry.Build(kind, state, 2, Theme.Moon).Bounds;
-                Assert.True(bounds.Left >= 0 && bounds.Top >= 0 && bounds.Right <= 24 && bounds.Bottom <= 24, $"{kind} {state}: {bounds}");
+                var bounds = MarkGeometry.Build(state, 2, Theme.Moon).Bounds;
+                Assert.True(bounds.Left >= 0 && bounds.Top >= 0 && bounds.Right <= 24 && bounds.Bottom <= 24, $"{state}: {bounds}");
             }
         });
     }
@@ -71,7 +44,7 @@ public sealed class MarkTests
     {
         Sta.Run(() =>
         {
-            var bitmap = MarkGeometry.Render(MarkKind.Lantern, MarkState.Idle, size, Theme.Moon);
+            var bitmap = MarkGeometry.Render(MarkState.Idle, size, Theme.Moon);
             Assert.Equal((size, size), (bitmap.PixelWidth, bitmap.PixelHeight));
             var bgra = MarkGeometry.ToBgra(bitmap);
             Assert.Contains(bgra.Where((_, i) => i % 4 == 3), alpha => alpha > 200);
@@ -82,8 +55,8 @@ public sealed class MarkTests
     public void A_light_taskbar_gets_the_deep_amber()
     {
         var (dark, light) = Sta.Run(() => (
-            At(MarkGeometry.ToBgra(MarkGeometry.Render(MarkKind.Lantern, MarkState.Live, 96, Theme.Moon)), FlameX, FlameY),
-            At(MarkGeometry.ToBgra(MarkGeometry.Render(MarkKind.Lantern, MarkState.Live, 96, Theme.Night)), FlameX, FlameY)));
+            At(MarkGeometry.ToBgra(MarkGeometry.Render(MarkState.Live, 96, Theme.Moon)), FlameX, FlameY),
+            At(MarkGeometry.ToBgra(MarkGeometry.Render(MarkState.Live, 96, Theme.Night)), FlameX, FlameY)));
 
         Assert.Equal(Theme.Amber, Color.FromRgb(dark.R, dark.G, dark.B));
         Assert.Equal(Theme.AmberDeep, Color.FromRgb(light.R, light.G, light.B));
@@ -105,8 +78,8 @@ public sealed class MarkTests
     public void Working_lights_an_amber_flame_in_empty_glass_and_idle_leaves_the_lantern_empty()
     {
         var (working, idle) = Sta.Run(() => (
-            MarkGeometry.ToBgra(MarkGeometry.Render(MarkKind.Lantern, MarkState.Live, 96, Theme.Moon)),
-            MarkGeometry.ToBgra(MarkGeometry.Render(MarkKind.Lantern, MarkState.Idle, 96, Theme.Moon))));
+            MarkGeometry.ToBgra(MarkGeometry.Render(MarkState.Live, 96, Theme.Moon)),
+            MarkGeometry.ToBgra(MarkGeometry.Render(MarkState.Idle, 96, Theme.Moon))));
 
         var flame = At(working, FlameX, FlameY);
         var core = At(working, FlameX, CoreY);
@@ -124,7 +97,7 @@ public sealed class MarkTests
     {
         var (tall, small) = Sta.Run(() =>
         {
-            var bgra = MarkGeometry.ToBgra(MarkGeometry.Render(MarkKind.Lantern, MarkState.Live, 96, Theme.Moon));
+            var bgra = MarkGeometry.ToBgra(MarkGeometry.Render(MarkState.Live, 96, Theme.Moon));
             var rows = Enumerable.Range(0, 96).Where(y => At(bgra, FlameX, y) is var c && c.A == 255 && c.R == Theme.Amber.R && c.G == Theme.Amber.G).ToList();
             return (rows.Last() - rows.First(), 7.3 * 4 * 1.18); // the original flame is 7.3 units tall
         });
@@ -137,7 +110,7 @@ public sealed class MarkTests
     {
         var (locked, working) = Sta.Run(() => (
             MarkGeometry.ToBgra(MarkGeometry.RenderLocked(96)),
-            MarkGeometry.ToBgra(MarkGeometry.Render(MarkKind.Lantern, MarkState.Live, 96, Theme.Moon))));
+            MarkGeometry.ToBgra(MarkGeometry.Render(MarkState.Live, 96, Theme.Moon))));
 
         var flame = At(locked, FlameX, FlameY);
         var body = At(locked, 84, 84); // grid (21, 21): the padlock's body, clear of the lantern
@@ -149,18 +122,6 @@ public sealed class MarkTests
         Assert.Equal(0, At(working, 84, 84).A); // the working lantern has nothing there
     }
 
-    [Fact]
-    public void Working_fills_the_moon_and_idle_leaves_it_empty()
-    {
-        var (working, idle) = Sta.Run(() => (
-            At(MarkGeometry.ToBgra(MarkGeometry.Render(MarkKind.MoonAndStar, MarkState.Live, 96, Theme.Moon)), 24, 60),
-            At(MarkGeometry.ToBgra(MarkGeometry.Render(MarkKind.MoonAndStar, MarkState.Idle, 96, Theme.Moon)), 24, 60)));
-
-        // Grid (6, 15): inside the crescent.
-        Assert.Equal(Theme.Amber, Color.FromRgb(working.R, working.G, working.B));
-        Assert.Equal(0, idle.A);
-    }
-
     [Theory]
     [InlineData(16)]
     [InlineData(24)]
@@ -169,7 +130,7 @@ public sealed class MarkTests
     {
         var (top, bottom) = Sta.Run(() =>
         {
-            var bgra = MarkGeometry.ToBgra(MarkGeometry.Render(MarkKind.Lantern, MarkState.Idle, size, Theme.Moon));
+            var bgra = MarkGeometry.ToBgra(MarkGeometry.Render(MarkState.Idle, size, Theme.Moon));
             var rows = Enumerable.Range(0, size).Where(y => Enumerable.Range(0, size).Any(x => bgra[(y * size + x) * 4 + 3] > 128)).ToList();
             return (rows.First(), rows.Last());
         });
@@ -205,7 +166,7 @@ public sealed class MarkTests
     {
         Sta.Run(() =>
         {
-            var image = MarkGeometry.Image(MarkKind.MoonAndStar, MarkState.Live, 1.5, Theme.Moon);
+            var image = MarkGeometry.Image(MarkState.Live, 1.5, Theme.Moon);
             Assert.True(image.IsFrozen);
             Assert.Equal((24.0, 24.0), (image.Width, image.Height));
         });

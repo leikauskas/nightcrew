@@ -15,7 +15,6 @@ public sealed record SettingsPage(
     IReadOnlyList<Choice<int>> LidClosedLimit,
     bool LockOnLidClose,
     bool StartAtLogin,
-    IReadOnlyList<Choice<MarkKind>> Mark,
     bool EfficiencyWhileAway = false,
     IReadOnlyList<FullSpeedApp>? FullSpeed = null,
     IReadOnlyList<NamedApp>? Addable = null,
@@ -30,7 +29,6 @@ public static class SettingsModel
     /// <param name="addable">The apps Nightcrew would slow right now, while the Add an app list is open.</param>
     public static SettingsPage From(Settings settings, IReadOnlyList<NamedApp>? addable = null)
     {
-        var mark = MarkKinds.Parse(settings.Mark);
         var kept = new HashSet<string>(settings.LeaveAlone, StringComparer.OrdinalIgnoreCase);
         var labels = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (var pair in settings.LeaveAloneLabels ?? []) labels[pair.Key] = pair.Value;
@@ -39,7 +37,6 @@ public static class SettingsModel
             Choices(LidClosedLimits, settings.LidClosedCapHours, value => value + " h"),
             settings.LockOnLidClose,
             settings.StartAtLogin,
-            [new("Lantern", MarkKind.Lantern, mark == MarkKind.Lantern), new("Moon and star", MarkKind.MoonAndStar, mark == MarkKind.MoonAndStar)],
             settings.EfficiencyWhileAway,
             settings.LeaveAlone
                 .Select(name => new FullSpeedApp(labels.TryGetValue(name, out var label) ? label : name, name))

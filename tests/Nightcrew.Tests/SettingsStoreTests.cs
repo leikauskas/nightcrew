@@ -82,7 +82,7 @@ public sealed class SettingsStoreTests : IDisposable
     public void Null_lists_become_defaults()
     {
         var path = WriteSettings("{\"TranscriptRoots\":null,\"AgentProcessNames\":null,\"IgnorePathContains\":null,\"SelfCpuAgentNames\":null," +
-            "\"LeaveAlone\":null,\"LeaveAloneLabels\":null,\"ConnectorHostNames\":null,\"Mark\":null,\"ClaudeSessionsDir\":null}");
+            "\"LeaveAlone\":null,\"LeaveAloneLabels\":null,\"ConnectorHostNames\":null,\"ClaudeSessionsDir\":null}");
         var settings = SettingsStore.Load(path);
         var defaults = new Settings();
         Assert.Equal(defaults.TranscriptRoots, settings.TranscriptRoots);
@@ -92,7 +92,6 @@ public sealed class SettingsStoreTests : IDisposable
         Assert.Equal(defaults.LeaveAlone, settings.LeaveAlone);
         Assert.Empty(settings.LeaveAloneLabels);
         Assert.Equal(defaults.ConnectorHostNames, settings.ConnectorHostNames);
-        Assert.Equal("lantern", settings.Mark);
         Assert.Equal(@"%USERPROFILE%\.claude\sessions", settings.ClaudeSessionsDir);
     }
 
@@ -129,12 +128,6 @@ public sealed class SettingsStoreTests : IDisposable
         Assert.Empty(settings.SelfCpuAgentNames);
         Assert.Empty(settings.LeaveAlone);
         Assert.Empty(settings.ConnectorHostNames);
-    }
-
-    [Fact]
-    public void Unknown_mark_becomes_the_lantern()
-    {
-        Assert.Equal("lantern", SettingsStore.Load(WriteSettings("{\"Mark\":\"comet\"}")).Mark);
     }
 
     [Fact]

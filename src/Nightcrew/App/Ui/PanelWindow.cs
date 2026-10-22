@@ -22,7 +22,7 @@ public sealed class PanelWindow : Window
     private readonly TranslateTransform _slide = new();
     private readonly PanelActions _actions;
     private readonly SettingsActions _settingsActions;
-    private (PanelView View, SettingsPage Settings, MarkKind Mark)? _content;
+    private (PanelView View, SettingsPage Settings)? _content;
     private DateTime _hiddenAt = DateTime.MinValue;
     private PanelAnchor? _anchor;
 
@@ -64,17 +64,17 @@ public sealed class PanelWindow : Window
     public bool OnSettings { get; private set; }
 
     /// <summary>Draws whichever page is showing; the other is kept so <see cref="ShowPage"/> can swap in place.</summary>
-    public void Render(PanelView view, SettingsPage settings, MarkKind mark)
+    public void Render(PanelView view, SettingsPage settings)
     {
-        _content = (view, settings, mark);
-        _frame.Child = OnSettings ? PanelVisual.BuildSettings(settings, _settingsActions) : PanelVisual.Build(view, mark, _actions);
+        _content = (view, settings);
+        _frame.Child = OnSettings ? PanelVisual.BuildSettings(settings, _settingsActions) : PanelVisual.Build(view, _actions);
     }
 
     /// <summary>Switches between the main page and the settings page without closing the panel.</summary>
     public void ShowPage(bool settings)
     {
         OnSettings = settings;
-        if (_content is { } content) Render(content.View, content.Settings, content.Mark);
+        if (_content is { } content) Render(content.View, content.Settings);
     }
 
     /// <summary>Opens beside the taskbar near <paramref name="click"/> (physical pixels), fading and sliding in.</summary>

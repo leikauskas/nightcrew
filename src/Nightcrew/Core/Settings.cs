@@ -22,7 +22,6 @@ public sealed class Settings
     [DataMember] public double ToolCpuPercent { get; set; }
     [DataMember] public double GpuPercent { get; set; }
     [DataMember] public int SampleSeconds { get; set; }
-    [DataMember] public string Mark { get; set; } = MarkKinds.LanternName;
     [DataMember] public bool EfficiencyWhileAway { get; set; }
     [DataMember] public string[] LeaveAlone { get; set; } = [];
 
@@ -56,7 +55,6 @@ public sealed class Settings
         LeaveAloneLabels ??= defaults.LeaveAloneLabels;
         ConnectorHostNames = Clean(ConnectorHostNames, defaults.ConnectorHostNames);
         ClaudeSessionsDir ??= defaults.ClaudeSessionsDir;
-        Mark = MarkKinds.Name(MarkKinds.Parse(Mark));
 
         GraceMinutes = Clamp(GraceMinutes, 1, 60);
         AwayMinutes = Clamp(AwayMinutes, 1, 60);
@@ -94,7 +92,6 @@ public sealed class Settings
         ToolCpuPercent = 10;
         GpuPercent = 30;
         SampleSeconds = 10;
-        Mark = MarkKinds.LanternName;
         EfficiencyWhileAway = false;
         LeaveAlone = [];
         LeaveAloneLabels = [];

@@ -26,13 +26,13 @@ public static class AssetRenderer
     ];
 
     /// <summary>Writes panel-quiet.png, panel-working.png, panel-paused.png and panel-settings.png at 2x.</summary>
-    public static IReadOnlyList<string> WritePanels(string directory, MarkKind mark = MarkKind.Lantern)
+    public static IReadOnlyList<string> WritePanels(string directory)
     {
         Directory.CreateDirectory(directory);
         var written = SamplePanels.Select(sample =>
         {
             var path = Path.Combine(directory, $"panel-{sample.Name}.png");
-            File.WriteAllBytes(path, MarkGeometry.ToPng(RenderPanel(sample.View, mark)));
+            File.WriteAllBytes(path, MarkGeometry.ToPng(RenderPanel(sample.View)));
             return path;
         }).ToList();
         var settings = Path.Combine(directory, "panel-settings.png");
@@ -65,13 +65,13 @@ public static class AssetRenderer
         Write("tile.png", MarkGeometry.RenderAppIcon(512));
         foreach (var state in new[] { MarkState.Idle, MarkState.Live })
         {
-            Write($"mark-{state.ToString().ToLowerInvariant()}.png", MarkGeometry.Render(MarkKind.Lantern, state, 192, Theme.Moon));
+            Write($"mark-{state.ToString().ToLowerInvariant()}.png", MarkGeometry.Render(state, 192, Theme.Moon));
         }
         Write("mark-locked.png", MarkGeometry.RenderLocked(192));
         return written;
     }
 
-    public static BitmapSource RenderPanel(PanelView view, MarkKind mark) => Render(PanelVisual.Build(view, mark, actions: null));
+    public static BitmapSource RenderPanel(PanelView view) => Render(PanelVisual.Build(view, actions: null));
 
     /// <summary>Lays out <paramref name="element"/> at its natural size and draws it at 2x.</summary>
     public static BitmapSource Render(FrameworkElement element)

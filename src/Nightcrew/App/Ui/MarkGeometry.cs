@@ -6,7 +6,7 @@ using Nightcrew.Core;
 namespace Nightcrew.App.Ui;
 
 /// <summary>
-/// Both marks as path data on a 24-unit grid. Everything that draws a mark (tray icons,
+/// The lantern as path data on a 24-unit grid. Everything that draws it (tray icons,
 /// the panel header, the app icon, the README assets) builds it here.
 /// </summary>
 public static class MarkGeometry
@@ -19,10 +19,6 @@ public static class MarkGeometry
     internal const string LanternGlass = "M7,8 H17 V19 H7 Z";
     internal const string LanternBase = "M7,19 H17 L16,21 H8 Z";
     internal const string LanternFlame = "M12,10 C14.1,12.2 14.7,13.6 14.7,14.6 A2.7,2.7 0 0 1 9.3,14.6 C9.3,13.6 9.9,12.2 12,10 Z";
-
-    // Moon and star: a crescent opening to the upper right, and a four-point star in its hollow.
-    internal const string Moon = "M19.5,15 A8.5,8.5 0 1 1 9,4.5 A7.5,7.5 0 0 0 19.5,15 Z";
-    internal const string Star = "M18.5,1.8 Q18.5,5.5 22.2,5.5 Q18.5,5.5 18.5,9.2 Q18.5,5.5 14.8,5.5 Q18.5,5.5 18.5,1.8 Z";
 
     // A padlock at the lantern's lower right, for the README's "You close the lid" step: a shackle over a body with a
     // keyhole.
@@ -37,7 +33,7 @@ public static class MarkGeometry
     public static double StrokeFor(double pixels) => pixels < 24 ? 2.0 : 1.5;
 
     /// <summary>
-    /// The lantern spans about 20 of the 24 units, the moon and star nearly all of them. Windows fixes the tray
+    /// The lantern spans about 20 of the 24 units. Windows fixes the tray
     /// slot's size, so tray bitmaps scale the lantern up about the centre until it fills the slot's height.
     /// </summary>
     internal const double TrayLanternScale = 1.18;
@@ -46,11 +42,11 @@ public static class MarkGeometry
     private const double WorkingFlameScale = 1.2, WorkingFlameTip = 9.4, CoreScale = 0.62, CoreTip = 12.93;
 
     /// <summary>
-    /// The mark for one state, in grid units, frozen. Working lights an amber flame in the lantern's empty glass, or
-    /// fills the moon with amber, which stands out from the white icons beside it in the tray. <paramref name="ink"/>
+    /// The mark for one state, in grid units, frozen. Working lights an amber flame in the lantern's empty glass, which
+    /// stands out from the white icons beside it in the tray. <paramref name="ink"/>
     /// is the stroke colour; on a light taskbar it is Night, and the amber deepens so it still shows.
     /// </summary>
-    public static Drawing Build(MarkKind kind, MarkState state, double strokeWidth, Color ink)
+    public static Drawing Build(MarkState state, double strokeWidth, Color ink)
     {
         var group = new DrawingGroup();
         var pen = new Pen(Theme.Brush(ink), strokeWidth) { LineJoin = PenLineJoin.Round, StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
@@ -63,49 +59,33 @@ public static class MarkGeometry
 
         void Add(string path, Brush? fill, Pen? stroke) => group.Children.Add(new GeometryDrawing(fill, stroke, Parse(path)));
 
-        if (kind == MarkKind.Lantern)
+        Add(LanternHandle, null, pen);
+        Add(LanternRoof, inkFill, pen);
+        Add(LanternGlass, null, pen);
+        if (working)
         {
-            Add(LanternHandle, null, pen);
-            Add(LanternRoof, inkFill, pen);
-            Add(LanternGlass, null, pen);
-            if (working)
-            {
-                group.Children.Add(new GeometryDrawing(amber, null, FlameAt(WorkingFlameScale, WorkingFlameTip)));
-                group.Children.Add(new GeometryDrawing(core, null, FlameAt(CoreScale, CoreTip)));
-            }
-            Add(LanternBase, inkFill, pen);
+            group.Children.Add(new GeometryDrawing(amber, null, FlameAt(WorkingFlameScale, WorkingFlameTip)));
+            group.Children.Add(new GeometryDrawing(core, null, FlameAt(CoreScale, CoreTip)));
         }
-        else
-        {
-            Add(Moon, working ? amber : null, pen);
-            if (working)
-            {
-                var starPen = new Pen(inkFill, 1) { LineJoin = PenLineJoin.Round };
-                starPen.Freeze();
-                Add(Star, inkFill, starPen);
-            }
-        }
+        Add(LanternBase, inkFill, pen);
         group.Freeze();
         return group;
     }
 
     /// <summary>The app icon's mark: the working lantern, its amber flame in empty glass, as the tray shows it.</summary>
-    private static Drawing AppIconMark(double strokeWidth) => Build(MarkKind.Lantern, MarkState.Live, strokeWidth, Theme.Moon);
+    private static Drawing AppIconMark(double strokeWidth) => Build(MarkState.Live, strokeWidth, Theme.Moon);
 
     /// <summary>A vector image of the mark for the panel header, 24 units square.</summary>
-    public static ImageSource Image(MarkKind kind, MarkState state, double strokeWidth, Color ink)
+    public static ImageSource Image(MarkState state, double strokeWidth, Color ink)
     {
-        var image = new DrawingImage(Framed(Build(kind, state, strokeWidth, ink)));
+        var image = new DrawingImage(Framed(Build(state, strokeWidth, ink)));
         image.Freeze();
         return image;
     }
 
     /// <summary>The mark rendered at <paramref name="pixels"/> square, transparent around it, as the tray shows it.</summary>
-    public static BitmapSource Render(MarkKind kind, MarkState state, int pixels, Color ink)
-    {
-        var mark = Build(kind, state, StrokeFor(pixels), ink);
-        return RenderDrawing(kind == MarkKind.Lantern ? TrayScaled(mark) : mark, pixels, tile: false);
-    }
+    public static BitmapSource Render(MarkState state, int pixels, Color ink) =>
+        RenderDrawing(TrayScaled(Build(state, StrokeFor(pixels), ink)), pixels, tile: false);
 
     /// <summary>
     /// The README's "You close the lid" mark: the working lantern as the tray draws it, with a padlock at its lower
@@ -114,7 +94,7 @@ public static class MarkGeometry
     public static BitmapSource RenderLocked(int pixels)
     {
         var group = new DrawingGroup();
-        group.Children.Add(TrayScaled(Build(MarkKind.Lantern, MarkState.Live, StrokeFor(pixels), Theme.Moon)));
+        group.Children.Add(TrayScaled(Build(MarkState.Live, StrokeFor(pixels), Theme.Moon)));
         var night = Theme.Brush(Theme.Night);
         var moon = Theme.Brush(Theme.Moon);
         var body = new RectangleGeometry(PadlockBody, 1.2, 1.2);

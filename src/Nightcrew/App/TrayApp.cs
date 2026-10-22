@@ -85,7 +85,6 @@ public sealed class TrayApp : ApplicationContext
                 LidClosedLimit: value => ChangeSetting("Lid-closed limit", () => _settings.LidClosedCapHours = value),
                 LockOnLidClose: on => ChangeSetting("Lock when lid closes", () => _settings.LockOnLidClose = on),
                 StartAtLogin: SetStartAtLogin,
-                Mark: kind => ChangeSetting("Tray mark", () => _settings.Mark = MarkKinds.Name(kind)),
                 OpenLog: OpenLog,
                 Quit: Quit,
                 EfficiencyWhileAway: on =>
@@ -260,7 +259,7 @@ public sealed class TrayApp : ApplicationContext
             _view = view;
             var tooltip = _dryRun ? "[dry run] " + view.Tooltip : view.Tooltip;
             _tray.Text = tooltip.Length > PanelModel.TooltipLimit ? tooltip.Substring(0, PanelModel.TooltipLimit) : tooltip;
-            _tray.Icon = _icons.Get(Mark, view.Mark, SystemInformation.SmallIconSize.Width, TaskbarTheme.IsLight());
+            _tray.Icon = _icons.Get(view.Mark, SystemInformation.SmallIconSize.Width, TaskbarTheme.IsLight());
             if (_panel.IsVisible) RenderPanel();
         }
         catch (Exception ex)
@@ -269,11 +268,9 @@ public sealed class TrayApp : ApplicationContext
         }
     }
 
-    private MarkKind Mark => MarkKinds.Parse(_settings.Mark);
-
     private void RenderPanel()
     {
-        if (_view is not null) _panel.Render(_view, SettingsModel.From(_settings, _addable), Mark);
+        if (_view is not null) _panel.Render(_view, SettingsModel.From(_settings, _addable));
     }
 
     /// <summary>Switches page, with the Add an app list closed.</summary>

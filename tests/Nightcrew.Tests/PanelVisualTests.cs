@@ -43,7 +43,7 @@ public sealed class PanelVisualTests : IDisposable
     [Fact]
     public void Working_shows_the_headline_holders_facts_and_buttons()
     {
-        var texts = Sta.Run(() => Texts(PanelVisual.Build(View("working"), MarkKind.Lantern, null)));
+        var texts = Sta.Run(() => Texts(PanelVisual.Build(View("working"), null)));
 
         Assert.Equal(
         [
@@ -57,8 +57,8 @@ public sealed class PanelVisualTests : IDisposable
     [Fact]
     public void Quiet_and_paused_have_no_holder_box()
     {
-        var quiet = Sta.Run(() => Texts(PanelVisual.Build(View("quiet"), MarkKind.Lantern, null)));
-        var paused = Sta.Run(() => Texts(PanelVisual.Build(View("paused"), MarkKind.MoonAndStar, null)));
+        var quiet = Sta.Run(() => Texts(PanelVisual.Build(View("quiet"), null)));
+        var paused = Sta.Run(() => Texts(PanelVisual.Build(View("paused"), null)));
 
         Assert.DoesNotContain("Keeping it awake", quiet);
         Assert.Contains("When the lid closes", quiet);
@@ -70,7 +70,7 @@ public sealed class PanelVisualTests : IDisposable
     public void A_warning_is_the_last_row()
     {
         var view = View("quiet") with { Warning = "Your power settings aren't back yet. Retrying." };
-        var texts = Sta.Run(() => Texts(PanelVisual.Build(view, MarkKind.Lantern, null)));
+        var texts = Sta.Run(() => Texts(PanelVisual.Build(view, null)));
         Assert.Equal("Your power settings aren't back yet. Retrying.", texts[texts.Count - 1]);
     }
 
@@ -81,8 +81,8 @@ public sealed class PanelVisualTests : IDisposable
         var longName = shortName with { Holders = [new Holder(new string('x', 120), "busy"), new Holder("Codex", "working")] };
         var (shortSize, longSize) = Sta.Run(() =>
         {
-            var a = AssetRenderer.RenderPanel(shortName, MarkKind.Lantern);
-            var b = AssetRenderer.RenderPanel(longName, MarkKind.Lantern);
+            var a = AssetRenderer.RenderPanel(shortName);
+            var b = AssetRenderer.RenderPanel(longName);
             return ((a.PixelWidth, a.PixelHeight), (b.PixelWidth, b.PixelHeight));
         });
         Assert.Equal((PanelVisual.Width + 2 * PanelVisual.ShadowRoom) * AssetRenderer.Scale, longSize.Item1);
@@ -98,7 +98,7 @@ public sealed class PanelVisualTests : IDisposable
 
         static Color HoldFill(PanelView view)
         {
-            var root = PanelVisual.Build(view, MarkKind.Lantern, null);
+            var root = PanelVisual.Build(view, null);
             var button = Find<Border>(root, border => System.Windows.Automation.AutomationProperties.GetName(border) == "Hold awake");
             return ((SolidColorBrush)button.Background).Color;
         }
@@ -110,7 +110,7 @@ public sealed class PanelVisualTests : IDisposable
         var calls = Sta.Run(() =>
         {
             var calls = new List<string>();
-            var root = PanelVisual.Build(View("working"), MarkKind.Lantern,
+            var root = PanelVisual.Build(View("working"),
                 new PanelActions(() => calls.Add("hold"), () => calls.Add("pause"), () => calls.Add("settings")));
             Click(Find<Border>(root, border => System.Windows.Automation.AutomationProperties.GetName(border) == "Pause"));
             Click(Find<Border>(root, border => System.Windows.Automation.AutomationProperties.GetName(border) == "Hold awake"));
