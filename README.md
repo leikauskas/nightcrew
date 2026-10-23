@@ -5,38 +5,30 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Windows-10%20%C2%B7%2011-F0D7FF?style=flat-square&labelColor=26282B" alt="Windows 10 and 11">
   <img src="https://img.shields.io/badge/license-MIT-F0D7FF?style=flat-square&labelColor=26282B" alt="MIT licence">
-  <img src="https://img.shields.io/badge/status-experimental-F5C27A?style=flat-square&labelColor=26282B" alt="Status: experimental">
 </p>
 
-Close a Windows laptop and it goes to sleep, and whatever Claude Code or Codex
-was doing stops with it. Nightcrew keeps the laptop working with the lid shut
-for as long as an agent is busy, then lets it sleep the way it normally
-would.
+Nightcrew keeps a Windows laptop awake with the lid closed while Claude Code or
+Codex works. When the work stops, it puts your power settings back and the
+laptop sleeps as usual. With no agent at work, the lid works as usual.
+
+It is one 1.7 MB exe in the tray. It uses less than 1% of one CPU core. There
+are no hooks or plugins to set up.
 
 https://github.com/user-attachments/assets/200be945-4714-42fb-981e-1815e68ddf0e
-
-- **Automatic.** It notices when an agent is working. No hooks, no plugin,
-  nothing to configure.
-- **Only when needed.** With no agent working, closing the lid does what it
-  always did.
-- **Puts your settings back.** It changes the lid action and the sleep timer
-  only while an agent works, and saves your own values first.
-- **Optional: Efficiency mode.** Off by default. Turn it on and, while you're
-  away, apps the agents don't need run at low priority.
-- **Light.** One 1.7 MB exe in the tray, using well under 1% of a CPU core.
 
 ## Install
 
 1. Download `nightcrew.exe` from [Releases](../../releases/latest).
-2. Put it somewhere it can stay, such as `%LOCALAPPDATA%\Programs\Nightcrew`,
-   and run it. A lantern appears in the tray, the panel opens once so you can
-   find it, and Nightcrew starts with Windows from then on.
+2. Put it in a permanent folder, for example `%LOCALAPPDATA%\Programs\Nightcrew`.
+3. Run it. A lantern appears in the tray and the panel opens once. From then
+   on, Nightcrew starts with Windows.
 
-The exe isn't code-signed, so the first run shows "Windows protected your PC".
-Click **More info**, then **Run anyway**. With Smart App Control on, Windows
-may block it outright. To check the download, compare its hash with the
-`nightcrew.exe.sha256` file on the release, or verify its GitHub build
-attestation:
+The exe is not code-signed. On the first run, Windows shows "Windows protected
+your PC". Click **More info**, then **Run anyway**. If Smart App Control is on,
+Windows can block the exe.
+
+To check the download, compare its hash with `nightcrew.exe.sha256` on the
+release, or verify the GitHub build attestation:
 
 ```powershell
 Get-FileHash .\nightcrew.exe
@@ -47,149 +39,138 @@ gh attestation verify .\nightcrew.exe -R leikauskas/nightcrew
 
 <img src="docs/assets/night.png" alt="One night in four steps: an agent starts, you close the lid, the work ends, it sleeps" width="100%">
 
-1. **An agent starts working.** Every 10 seconds Nightcrew looks for a Claude
-   Code or Codex session that's growing, a build or script one of them
-   started, or heavy GPU use by one of them or their tools. For Claude Code it
-   also reads the status in `~\.claude\sessions\<pid>.json` (busy, idle or
-   waiting), so a long, quiet command still counts. That's the only file it
-   opens in `~\.claude`: session transcripts are watched for size only, and the
-   login `.key` files are never touched. Nightcrew has no network code. The
+1. **An agent starts.** Every 10 seconds, Nightcrew looks for a Claude Code or
+   Codex session file that grows, a build or script that an agent started, or
+   high GPU use by an agent or its tools. It also reads the Claude Code status
+   files in `~\.claude\sessions`, so a long, quiet command counts too. The
    lantern lights up.
-2. **You close the lid.** The laptop keeps running and locks itself, unless
-   your lid action is Do nothing or **Lock when lid closes** is off. When the
-   work started, Nightcrew saved your power settings, then set the lid to Do
-   nothing and the sleep timer to Never. On battery the timer is your
-   lid-closed limit plus an hour instead, or Never if the limit is off.
-3. **Other apps can ease off.** If you turned on Efficiency mode, apps the
-   agents don't need go into Efficiency mode five minutes later. Agents, what
-   they're connected to, terminals, editors, browsers with a Claude or Codex
-   connector and games are left alone. Everything's back to normal the moment
-   you open the lid.
-4. **The work ends.** Five minutes after the last sign of work, your settings
-   go back.
-5. **It sleeps.** Once nobody has touched the laptop for 5 minutes, it follows
-   your lid action: sleep, hibernate or nothing. If Windows hasn't gone to
-   sleep 5 minutes later, Nightcrew hibernates it.
+2. **Nightcrew saves your power settings,** then sets the lid action to Do
+   nothing and the sleep timer to Never. On battery, the timer is your
+   lid-closed limit plus one hour.
+3. **You close the lid.** The laptop continues to work and locks, unless your
+   lid action is Do nothing or **Lock when lid closes** is off.
+4. **The work stops.** After 5 minutes with no sign of work, Nightcrew puts your
+   settings back.
+5. **The laptop sleeps.** After 5 minutes with no input, the laptop does your
+   lid action. If it is still awake 5 minutes later, Nightcrew hibernates it.
 
-**Safety limits.** With the lid closed, Nightcrew stops early and hibernates at
-20% battery or after 8 untouched hours, even mid-task. You can change both.
+With the lid closed, Nightcrew hibernates the laptop at 20% battery or after 8
+hours with no input, also during work. You can change both limits.
 
-## What it changes, and how it puts it back
+A game or a video export does not count as work. In `~\.claude`, Nightcrew
+opens only the status files. It reads transcripts for size only and never
+touches the login `.key` files. Nightcrew has no network code.
 
-While an agent works, Nightcrew changes the active power plan only: the lid
-action becomes Do nothing, and the sleep timer becomes Never (on battery, your
-lid-closed limit plus an hour). No other power setting changes.
+## Your settings
 
-Before the first change, it saves your own values twice: in
-`%LOCALAPPDATA%\Nightcrew\restore.json` and in the registry under
-`HKCU\Software\Nightcrew\Restore`. It puts them back when the work ends, when
-you pause or quit, when you sign out, and on the next start after a crash. If
-Nightcrew is killed, a watchdog task puts them back within 5 minutes. A value
-you change yourself in the meantime, such as the lid action, is saved as yours
-and comes back when the work ends. Until then Nightcrew sets its own value
-again, so closing the lid doesn't stop the work.
+Nightcrew saves your values in `%LOCALAPPDATA%\Nightcrew\restore.json` and in
+the registry under `HKCU\Software\Nightcrew\Restore`. It puts them back when
+the work stops, when you pause or quit, when you sign out, and on the next start
+after a crash. If Nightcrew is killed, a watchdog task puts them back within 5
+minutes.
 
-If both copies are lost, Nightcrew can't know your values, so it sets Windows'
-defaults for your plan. It knows its own values by the battery timer: Windows
-offers only whole minutes, and Nightcrew adds 7 seconds. With the lid-closed
-limit off, that timer is Never and carries no mark, so only the two saved
-copies can bring your values back.
+If you change the lid action or sleep timer during work, Nightcrew saves your
+new value and keeps its own until the work stops. If both saved copies are
+lost, Nightcrew sets the Windows defaults for your plan. It can do this only
+when the lid-closed limit is on, because it finds its own values by a 7-second
+mark on the battery timer.
 
-Efficiency mode is off by default. If you turn it on, apps the agents don't
-need run at low priority with Windows' EcoQoS while you're away, and go back
-to normal when you return or the work ends. Nightcrew never suspends, freezes
-or kills an app.
+**Efficiency mode** is off by default. When it is on, apps the agents do not
+need run at low priority (Windows EcoQoS) after 5 minutes with no input. Agents,
+their connected processes, terminals, editors, games and browsers with a Claude
+or Codex connector keep full speed. All apps go back to normal when you return
+or the work stops. Nightcrew never suspends or kills an app.
 
-If your organization locks the power settings, Nightcrew stays idle and tells
-you so.
+If your organization locks the power settings, Nightcrew does nothing and tells
+you.
 
 ## The panel
 
 <img src="docs/assets/panel-working.png" alt="The Nightcrew panel while Claude Code and Codex are working" width="352" align="right">
 
-Click the lantern to see what's keeping the laptop awake, your battery, and
-what happens when the work is done.
+Click the lantern, or start `nightcrew.exe` again. The panel shows what keeps
+the laptop awake, the battery, and what happens when the work stops.
 
-- **Hold awake** keeps the laptop awake until you turn it off, for anything
-  Nightcrew can't detect on its own.
-- **Pause** hands the lid back to Windows until you resume.
-- **Settings**, or right-click the lantern: battery floor, lid-closed limit,
-  lock on lid close, stay awake for approvals, start at login and Efficiency
-  mode while away.
-- **Stay awake for approvals**: with the lid closed, Claude Code waiting for
-  your approval or answer counts as work, so you can answer from your phone.
-  Claude Code only. With the lid open, Windows' own sleep timer applies.
-- Starting `nightcrew.exe` again opens the panel.
-- If an app keeps misbehaving after you've been away, add it under **Keep at
-  full speed** in Settings.
+- **Hold awake** keeps the laptop awake until you turn it off. Use it for work
+  that Nightcrew cannot detect.
+- **Pause** gives the lid back to Windows until you resume.
+- **Settings** (also on right-click) has the limits and options above.
+- **Stay awake for approvals**: with the lid closed, a Claude Code session that
+  waits for your answer counts as work, so you can answer from your phone.
+- **Keep at full speed** in Settings: add an app here if it does not work
+  correctly after you were away.
 
 <br clear="right">
-
-## Good to know
-
-- Only GPU use by an agent, or by a tool it started, counts as work. A game
-  or a video export doesn't.
 
 <details>
 <summary><b>Other agents and advanced settings</b></summary>
 
-Nightcrew knows Claude Code and Codex. Any other agent is covered with **Hold
-awake**, or once you add it here. To teach Nightcrew about another agent, quit
-Nightcrew, edit `%LOCALAPPDATA%\Nightcrew\settings.json`, and start it again:
+Nightcrew detects Claude Code and Codex. For another agent, use **Hold awake**,
+or add the agent to the settings file:
 
-- add its process name to `AgentProcessNames`, so programs it starts count as
-  agent tools
-- add it to `SelfCpuAgentNames` too if the agent works in its own process
-- add the folder where it writes `*.jsonl` session files to `TranscriptRoots`
+1. Quit Nightcrew.
+2. Edit `%LOCALAPPDATA%\Nightcrew\settings.json`:
+   - Add the agent's process name to `AgentProcessNames`. Programs that it
+     starts then count as agent tools.
+   - If the agent does its work in its own process, also add it to
+     `SelfCpuAgentNames`.
+   - Add the folder where it writes `*.jsonl` session files to
+     `TranscriptRoots`.
+3. Start Nightcrew.
 
-A key you leave out keeps its default. The log, `nightcrew.log`, is in the
-same folder. To see what Nightcrew would do without letting it change
-anything, quit Nightcrew, run `.\nightcrew.exe --dry-run` in its folder and
-read the log.
+A key that you leave out keeps its default. The log, `nightcrew.log`, is in the
+same folder.
+
+To see what Nightcrew would do without changes, quit Nightcrew, run
+`.\nightcrew.exe --dry-run` in its folder, and read the log.
 
 | Key | Default | Meaning |
 |---|---|---|
-| `GraceMinutes` | 5 | How long work stays live after the last sign of work |
-| `BatteryFloorPercent` | 20 | Hibernate at this charge with the lid closed on battery; 0 = off |
-| `LidClosedCapHours` | 8 | Hibernate after this long with the lid closed and no input. While working, the battery sleep timer is this plus an hour. 0 = off (timer Never) |
-| `AwayMinutes` | 5 | Minutes without input before the lid action runs, before lid-closed time counts toward the limit, before the lock when work starts with the lid closed, and before apps go into Efficiency mode |
+| `GraceMinutes` | 5 | Minutes that work stays live after the last sign of work |
+| `BatteryFloorPercent` | 20 | Hibernate at this charge, lid closed, on battery. 0 = off |
+| `LidClosedCapHours` | 8 | Hibernate after this many hours, lid closed, no input. During work, the battery sleep timer is this plus 1 hour. 0 = off (timer Never) |
+| `AwayMinutes` | 5 | Minutes with no input before: the lid action runs, lid-closed time counts, the PC locks if work starts with the lid closed, apps go into Efficiency mode |
 | `LockOnLidClose` | true | Lock the PC when the lid closes |
 | `StartAtLogin` | true | Start Nightcrew when you sign in |
-| `DryRun` | false | Log what Nightcrew would do without doing it |
-| `TranscriptRoots` | Claude Code and Codex folders | Where session files are watched |
-| `IgnorePathContains` | `claude-mem-observer` | Session files whose path contains this are ignored |
-| `AgentProcessNames` | `claude`, `codex` | Agent processes; programs they start count as agent tools |
+| `DryRun` | false | Log what Nightcrew would do, but do nothing |
+| `TranscriptRoots` | Claude Code and Codex folders | Folders with session files to watch |
+| `IgnorePathContains` | `claude-mem-observer` | Ignore session files whose path contains this |
+| `AgentProcessNames` | `claude`, `codex` | Agent processes. Programs they start count as agent tools |
 | `SelfCpuAgentNames` | `codex` | Agents whose own CPU use counts |
-| `SelfCpuPercent` | 2 | CPU threshold for those agents, % of one core |
-| `ToolCpuPercent` | 10 | CPU threshold for agent tools, % of one core |
-| `GpuPercent` | 30 | GPU engine threshold, %, for agents and the tools they start |
+| `SelfCpuPercent` | 2 | CPU limit for those agents, % of one core |
+| `ToolCpuPercent` | 10 | CPU limit for agent tools, % of one core |
+| `GpuPercent` | 30 | GPU engine limit, %, for agents and their tools |
 | `SampleSeconds` | 10 | Seconds between checks |
-| `EfficiencyWhileAway` | false | Put apps the agents don't need into Efficiency mode while you're away |
+| `EfficiencyWhileAway` | false | Efficiency mode for apps the agents do not need while you are away |
 | `LeaveAlone` | none | Process names never put into Efficiency mode (Settings > Keep at full speed) |
-| `LeaveAloneLabels` | none | The names Settings shows for `LeaveAlone` entries |
-| `ConnectorHostNames` | `chrome-native-host`, `extension-host` | Browser connector helpers; their browser is left alone |
-| `StayAwakeForApprovals` | true | With the lid closed, a Claude Code session waiting for you counts as work |
-| `ClaudeSessionsDir` | `%USERPROFILE%\.claude\sessions` | Where Claude Code keeps its session status files |
+| `LeaveAloneLabels` | none | Names that Settings shows for `LeaveAlone` entries |
+| `ConnectorHostNames` | `chrome-native-host`, `extension-host` | Browser connector helpers. Their browser is left alone |
+| `StayAwakeForApprovals` | true | Lid closed: a Claude Code session that waits for you counts as work |
+| `ClaudeSessionsDir` | `%USERPROFILE%\.claude\sessions` | Folder with the Claude Code status files |
 
 </details>
 
 ## Update
 
-Quit Nightcrew: right-click the lantern, then **Quit Nightcrew**. That puts
-your settings back. Replace the exe with the new one, then start it.
+1. Right-click the lantern, then click **Quit Nightcrew**. This puts your
+   settings back.
+2. Replace the exe with the new one.
+3. Start it.
 
 From a script, run `Start-Process .\nightcrew.exe -ArgumentList '--exit' -Wait`
-in its folder. PowerShell doesn't wait for `.\nightcrew.exe --exit` on its own.
+in its folder. PowerShell does not wait for `.\nightcrew.exe --exit`.
 
 ## Uninstall
 
-Quit Nightcrew (right-click the lantern, then **Quit Nightcrew**), then run
-`.\nightcrew.exe --uninstall` in its folder. That puts your settings back,
-takes any app out of Efficiency mode, and removes the startup entry, the
-watchdog task, and, once your settings are back, Nightcrew's registry key
-(`HKCU\Software\Nightcrew`). Then delete the exe, and `%LOCALAPPDATA%\Nightcrew`
-if you want the settings and log gone too. Don't only delete the exe: the
-watchdog task would stay behind.
+1. Quit Nightcrew.
+2. In its folder, run `.\nightcrew.exe --uninstall`. This puts your settings
+   back, takes all apps out of Efficiency mode, and removes the startup entry
+   and the watchdog task. When your settings are back, it also removes the
+   registry key `HKCU\Software\Nightcrew`.
+3. Delete the exe. To remove the settings and the log, also delete
+   `%LOCALAPPDATA%\Nightcrew`.
+
+Do not delete only the exe. The watchdog task stays behind.
 
 ## Credits
 
